@@ -1,0 +1,4 @@
+rpc_url = "http://localhost:8545"
+tree_depth = 16
+batch_size = 3
+private_key = "5fe83025a3c43318321d6cba06de6f5b7ebe4346ba069b94b9c4a3b5b4864cc9"

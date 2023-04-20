@@ -1,0 +1,3 @@
+[submodule "world-id-contracts"]
+	path = world-id-contracts
+	url = git@github.com:worldcoin/world-id-contracts.git
