@@ -9,7 +9,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
-pub mod cache;
+pub mod typed_map;
 pub mod forge_utils;
 pub mod serde_utils;
 
