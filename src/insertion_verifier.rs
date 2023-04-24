@@ -5,12 +5,17 @@ use ethers::types::Address;
 use eyre::ContextCompat;
 use tracing::{info, instrument};
 
-use crate::forge_utils::{ContractSpec, ForgeCreate};
+use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
 use crate::{Config, Context};
 
 const MTB_BIN: &str = "mtb";
 const KEYS: &str = "keys";
 const VERIFIER_CONTRACT: &str = "verifier.sol";
+
+#[derive(Clone)]
+pub struct InsertionVerifier {
+    pub deployment: ForgeOutput,
+}
 
 #[instrument(skip(mtb_bin))]
 pub async fn download_semaphore_mtb_binary(mtb_bin: impl AsRef<Path>) -> eyre::Result<()> {
@@ -138,9 +143,10 @@ pub async fn generate_verifier_contract(
 
 #[instrument(skip_all)]
 pub async fn deploy_verifier_contract(
+    context: &Context,
     config: &Config,
     verifier_contract: impl AsRef<Path>,
-) -> eyre::Result<Address> {
+) -> eyre::Result<ForgeOutput> {
     let verifier_contract = verifier_contract.as_ref();
 
     let verifier_contract = verifier_contract.canonicalize()?;
@@ -152,15 +158,16 @@ pub async fn deploy_verifier_contract(
 
     let private_key_string = hex::encode(config.private_key.to_bytes().as_slice());
 
-    let forge = ForgeCreate::new(contract_spec)
+    let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
+        .with_override_nonce(context.next_nonce())
         .with_private_key(private_key_string)
         .with_rpc_url(config.rpc_url.clone())
         .run()
         .await?;
 
-    Ok(forge.deployed_to)
+    Ok(output)
 }
 
 #[instrument(name = "Insertion Verifier", skip_all)]
@@ -180,8 +187,13 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     .await?;
     generate_verifier_contract(&mtb_bin_path, &keys_file).await?;
 
-    let verifier_address = deploy_verifier_contract(config, &verifier_contract).await?;
-    info!("verifier_address = {verifier_address:?}");
+    let deployment = deploy_verifier_contract(context, config, &verifier_contract).await?;
+
+    context
+        .typed_map
+        .write()
+        .await
+        .insert(InsertionVerifier { deployment });
 
     Ok(())
 }

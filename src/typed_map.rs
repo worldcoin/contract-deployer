@@ -17,7 +17,14 @@ impl TypedMap {
         self.map.insert(TypeId::of::<T>(), Box::new(value));
     }
 
-    pub fn get<T: 'static + Send + Sync>(&self) -> Option<&T> {
+    pub fn get<T: 'static + Send + Sync>(&self) -> &T {
+        self.map
+            .get(&TypeId::of::<T>())
+            .and_then(|boxed| boxed.downcast_ref())
+            .unwrap()
+    }
+
+    pub fn try_get<T: 'static + Send + Sync>(&self) -> Option<&T> {
         self.map
             .get(&TypeId::of::<T>())
             .and_then(|boxed| boxed.downcast_ref())
@@ -50,8 +57,8 @@ mod tests {
         cache.insert(TypedU32(23));
         cache.insert(AnotherTypedU32(32));
 
-        assert_eq!(cache.get::<TypedU32>(), Some(&TypedU32(23)));
-        assert_eq!(cache.get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
+        assert_eq!(cache.try_get::<TypedU32>(), Some(&TypedU32(23)));
+        assert_eq!(cache.try_get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
     }
 
     #[test]
@@ -62,7 +69,7 @@ mod tests {
             _mutexed: Arc::new(Mutex::new(vec![1, 2, 3])),
         });
 
-        assert!(cache.get::<ComplexType>().is_some());
+        assert!(cache.try_get::<ComplexType>().is_some());
     }
 
     #[tokio::test]
@@ -77,7 +84,7 @@ mod tests {
         let handle_1 = {
             let cache = cache.clone();
             tokio::spawn(async move {
-                assert_eq!(cache.get::<TypedU32>(), Some(&TypedU32(23)));
+                assert_eq!(cache.try_get::<TypedU32>(), Some(&TypedU32(23)));
             })
         };
 
@@ -85,7 +92,7 @@ mod tests {
             let cache = cache.clone();
 
             tokio::spawn(async move {
-                assert_eq!(cache.get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
+                assert_eq!(cache.try_get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
             })
         };
 

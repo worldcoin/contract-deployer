@@ -1,15 +1,19 @@
 use std::path::PathBuf;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use clap::Parser;
-use common_keys::InitialRoot;
+use common_keys::{InitialRoot, RpcSigner};
 use ethers::prelude::k256::SecretKey;
+use ethers::prelude::SignerMiddleware;
+use ethers::providers::{Middleware, Provider};
+use ethers::signers::{Signer, Wallet};
 use ethers::types::H256;
 use semaphore::poseidon_tree::LazyPoseidonTree;
 use semaphore::Field;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tracing::instrument;
+use tracing::{info, instrument};
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -21,6 +25,10 @@ pub mod forge_utils;
 pub mod serde_utils;
 pub mod typed_map;
 
+mod insertion_verifier;
+mod lookup_tables;
+mod semaphore_verifier;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub rpc_url: String,
@@ -28,6 +36,7 @@ pub struct Config {
     pub private_key: SecretKey,
     pub tree_depth: usize,
     pub batch_size: usize,
+    #[serde(default)]
     pub initial_leaf_value: H256,
 }
 
@@ -35,6 +44,13 @@ pub struct Config {
 pub struct Context {
     pub cache_dir: PathBuf,
     pub typed_map: Arc<RwLock<TypedMap>>,
+    pub nonce: AtomicU64,
+}
+
+impl Context {
+    pub fn next_nonce(&self) -> u64 {
+        self.nonce.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -49,9 +65,6 @@ struct Cmd {
     #[clap(short, long, env)]
     pub deployment_name: String,
 }
-
-mod insertion_verifier;
-mod semaphore_verifier;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -92,9 +105,22 @@ async fn start() -> eyre::Result<()> {
 
     typed_map.insert(InitialRoot(initial_root_hash));
 
+    let provider = Provider::try_from(config.rpc_url.as_str())?;
+    let chain_id = provider.get_chainid().await?;
+    let wallet = Wallet::from(config.private_key.clone()).with_chain_id(chain_id.as_u64());
+
+    let wallet_address = wallet.address();
+    info!("wallet_address = {wallet_address}");
+    let signer = SignerMiddleware::new(provider, wallet);
+
+    let nonce = signer.get_transaction_count(wallet_address, None).await?;
+
+    typed_map.insert(RpcSigner(Arc::new(signer)));
+
     let context = Context {
         cache_dir,
         typed_map: Arc::new(RwLock::new(typed_map)),
+        nonce: AtomicU64::new(nonce.as_u64()),
     };
 
     let (insertion, semaphore) = tokio::join!(
@@ -104,6 +130,8 @@ async fn start() -> eyre::Result<()> {
 
     semaphore?;
     insertion?;
+
+    lookup_tables::deploy(&context, &config).await?;
 
     Ok(())
 }
