@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use ethers::prelude::k256::SecretKey;
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -34,12 +35,13 @@ struct Cmd {
 
     /// The name of the deployment
     ///
-    /// Should be something meaningfull like 'prod-2023-04-18'
+    /// Should be something meaningful like 'prod-2023-04-18'
     #[clap(short, long, env)]
     pub deployment_name: String,
 }
 
 mod insertion_verifier;
+mod semaphore_verifier;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -58,6 +60,11 @@ async fn main() -> eyre::Result<()> {
         .with(indicatif_layer)
         .init();
 
+    start().await
+}
+
+#[instrument]
+async fn start() -> eyre::Result<()> {
     let cmd = Cmd::parse();
 
     let config = serde_utils::read_deserialize(&cmd.config).await?;
@@ -67,7 +74,13 @@ async fn main() -> eyre::Result<()> {
 
     let context = Context { cache_dir };
 
-    insertion_verifier::deploy(&context, &config).await?;
+    let (insertion, semaphore) = tokio::join!(
+        insertion_verifier::deploy(&context, &config),
+        semaphore_verifier::deploy(&context, &config),
+    );
+
+    semaphore?;
+    insertion?;
 
     Ok(())
 }

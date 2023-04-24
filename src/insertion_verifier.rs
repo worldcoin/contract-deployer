@@ -22,8 +22,6 @@ pub async fn download_semaphore_mtb_binary(mtb_bin: impl AsRef<Path>) -> eyre::R
 
     let info = os_info::get();
 
-    info!("Type: {}", info.os_type());
-
     let os = match info.os_type() {
         os_info::Type::Windows => "windows",
         os_info::Type::Macos => "darwin",
@@ -42,9 +40,6 @@ pub async fn download_semaphore_mtb_binary(mtb_bin: impl AsRef<Path>) -> eyre::R
     }
 
     let arch = if arch == "x64" { "amd64" } else { arch };
-
-    info!("OS: {}", os);
-    info!("Arch: {}", arch);
 
     const MTB_RELEASES_URL: &str = "https://github.com/worldcoin/semaphore-mtb/releases/download";
     const MTB_VERSION: &str = "1.0.2";
@@ -153,12 +148,12 @@ pub async fn deploy_verifier_contract(
         .parent()
         .context("Missing verifier contract parent directory")?;
 
-    let contract_spec = ContractSpec::new(verifier_contract.clone(), "Verifier");
+    let contract_spec = ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
     let private_key_string = hex::encode(config.private_key.to_bytes().as_slice());
 
     let forge = ForgeCreate::new(contract_spec)
-        .with_cwd("..")
+        .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
         .with_private_key(private_key_string)
         .with_rpc_url(config.rpc_url.clone())
@@ -168,7 +163,7 @@ pub async fn deploy_verifier_contract(
     Ok(forge.deployed_to)
 }
 
-#[instrument(skip_all)]
+#[instrument(name = "Insertion Verifier", skip_all)]
 pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
     let keys_file = context.cache_dir.join(KEYS);

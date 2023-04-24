@@ -395,6 +395,7 @@ dependencies = [
  "ethers",
  "eyre",
  "foundry-cli",
+ "futures",
  "hex",
  "hex-literal",
  "indicatif 0.17.3",

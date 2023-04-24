@@ -1,20 +1,27 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 
 use ethers::types::{Address, H256};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct ContractSpec {
-    pub path: PathBuf,
+    pub path: Option<PathBuf>,
     pub name: String,
 }
 
 impl ContractSpec {
-    pub fn new(path: PathBuf, name: impl ToString) -> Self {
+    pub fn path_name(path: PathBuf, name: impl ToString) -> Self {
         Self {
-            path,
+            path: Some(path),
+            name: name.to_string(),
+        }
+    }
+
+    pub fn name(name: impl ToString) -> Self {
+        Self {
+            path: None,
             name: name.to_string(),
         }
     }
@@ -25,15 +32,39 @@ pub struct ExternalDep {
     pub address: Address,
 }
 
+impl ExternalDep {
+    pub fn path_name_address(
+        path: impl AsRef<Path>,
+        name: impl ToString,
+        address: Address,
+    ) -> Self {
+        Self {
+            contract_spec: ContractSpec::path_name(path.as_ref().to_owned(), name),
+            address,
+        }
+    }
+
+    pub fn name_address(name: impl ToString, address: Address) -> Self {
+        Self {
+            contract_spec: ContractSpec::name(name),
+            address,
+        }
+    }
+}
+
 impl fmt::Display for ContractSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.path.display(), self.name)
+        if let Some(path) = self.path.as_deref() {
+            write!(f, "{}:{}", path.display(), self.name)
+        } else {
+            write!(f, "{}", self.name)
+        }
     }
 }
 
 impl fmt::Display for ExternalDep {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.contract_spec, self.address)
+        write!(f, "{}:{:?}", self.contract_spec, self.address)
     }
 }
 
@@ -121,6 +152,21 @@ impl ForgeCreate {
         }
 
         cmd.arg(self.contract_spec.to_string());
+
+        if !self.external_deps.is_empty() {
+            let mut external_deps = Vec::new();
+
+            for external_dep in &self.external_deps {
+                external_deps.push(external_dep.to_string());
+            }
+
+            let external_deps = external_deps.join(",");
+
+            info!("external_deps = {external_deps}");
+
+            cmd.arg("--libraries");
+            cmd.arg(external_deps);
+        }
 
         if let Some(private_key) = &self.private_key {
             cmd.arg("--private-key");
