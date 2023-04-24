@@ -1,6 +1,7 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct TypedMap {
     map: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
 }

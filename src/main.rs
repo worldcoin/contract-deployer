@@ -1,17 +1,25 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use clap::Parser;
+use common_keys::InitialRoot;
 use ethers::prelude::k256::SecretKey;
+use ethers::types::H256;
+use semaphore::poseidon_tree::LazyPoseidonTree;
+use semaphore::Field;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 use tracing::instrument;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
+use typed_map::TypedMap;
 
-pub mod typed_map;
+pub mod common_keys;
 pub mod forge_utils;
 pub mod serde_utils;
+pub mod typed_map;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -20,11 +28,13 @@ pub struct Config {
     pub private_key: SecretKey,
     pub tree_depth: usize,
     pub batch_size: usize,
+    pub initial_leaf_value: H256,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Context {
     pub cache_dir: PathBuf,
+    pub typed_map: Arc<RwLock<TypedMap>>,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -67,12 +77,25 @@ async fn main() -> eyre::Result<()> {
 async fn start() -> eyre::Result<()> {
     let cmd = Cmd::parse();
 
-    let config = serde_utils::read_deserialize(&cmd.config).await?;
+    let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
     let cache_dir = PathBuf::from(cmd.deployment_name);
     tokio::fs::create_dir_all(&cache_dir).await?;
 
-    let context = Context { cache_dir };
+    let initial_leaf_value = Field::from_be_bytes(config.initial_leaf_value.0);
+
+    let initial_root_hash = LazyPoseidonTree::new(config.tree_depth, initial_leaf_value).root();
+
+    let initial_root_hash = H256(initial_root_hash.to_be_bytes());
+
+    let mut typed_map = TypedMap::new();
+
+    typed_map.insert(InitialRoot(initial_root_hash));
+
+    let context = Context {
+        cache_dir,
+        typed_map: Arc::new(RwLock::new(typed_map)),
+    };
 
     let (insertion, semaphore) = tokio::join!(
         insertion_verifier::deploy(&context, &config),
