@@ -10,7 +10,8 @@ pub async fn deploy_semaphore_pairing_library(
     config: &Config,
 ) -> eyre::Result<ForgeOutput> {
     let contract_spec = ContractSpec::name("Pairing");
-    let private_key_string = hex::encode(config.private_key.to_bytes().as_slice());
+    let private_key_string =
+        hex::encode(config.private_key.to_bytes().as_slice());
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
@@ -31,7 +32,8 @@ pub async fn deploy_semaphore_verifier(
 ) -> eyre::Result<()> {
     let contract_spec = ContractSpec::name("SemaphoreVerifier");
 
-    let private_key_string = hex::encode(config.private_key.to_bytes().as_slice());
+    let private_key_string =
+        hex::encode(config.private_key.to_bytes().as_slice());
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")

@@ -25,6 +25,7 @@ pub mod forge_utils;
 pub mod serde_utils;
 pub mod typed_map;
 
+mod identity_manager;
 mod insertion_verifier;
 mod lookup_tables;
 mod semaphore_verifier;
@@ -97,7 +98,8 @@ async fn start() -> eyre::Result<()> {
 
     let initial_leaf_value = Field::from_be_bytes(config.initial_leaf_value.0);
 
-    let initial_root_hash = LazyPoseidonTree::new(config.tree_depth, initial_leaf_value).root();
+    let initial_root_hash =
+        LazyPoseidonTree::new(config.tree_depth, initial_leaf_value).root();
 
     let initial_root_hash = H256(initial_root_hash.to_be_bytes());
 
@@ -107,7 +109,8 @@ async fn start() -> eyre::Result<()> {
 
     let provider = Provider::try_from(config.rpc_url.as_str())?;
     let chain_id = provider.get_chainid().await?;
-    let wallet = Wallet::from(config.private_key.clone()).with_chain_id(chain_id.as_u64());
+    let wallet = Wallet::from(config.private_key.clone())
+        .with_chain_id(chain_id.as_u64());
 
     let wallet_address = wallet.address();
     info!("wallet_address = {wallet_address}");
@@ -132,6 +135,7 @@ async fn start() -> eyre::Result<()> {
     insertion?;
 
     lookup_tables::deploy(&context, &config).await?;
+    identity_manager::deploy(&context, &config).await?;
 
     Ok(())
 }

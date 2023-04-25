@@ -608,7 +608,6 @@ dependencies = [
 name = "bootstrapper"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "clap 4.2.3",
  "dotenv",
  "ethers",

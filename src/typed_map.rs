@@ -58,7 +58,10 @@ mod tests {
         cache.insert(AnotherTypedU32(32));
 
         assert_eq!(cache.try_get::<TypedU32>(), Some(&TypedU32(23)));
-        assert_eq!(cache.try_get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
+        assert_eq!(
+            cache.try_get::<AnotherTypedU32>(),
+            Some(&AnotherTypedU32(32))
+        );
     }
 
     #[test]
@@ -92,7 +95,10 @@ mod tests {
             let cache = cache.clone();
 
             tokio::spawn(async move {
-                assert_eq!(cache.try_get::<AnotherTypedU32>(), Some(&AnotherTypedU32(32)));
+                assert_eq!(
+                    cache.try_get::<AnotherTypedU32>(),
+                    Some(&AnotherTypedU32(32))
+                );
             })
         };
 

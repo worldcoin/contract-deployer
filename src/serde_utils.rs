@@ -8,7 +8,10 @@ pub mod secret_key {
     use ethers::prelude::k256::SecretKey;
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S>(key: &SecretKey, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(
+        key: &SecretKey,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {

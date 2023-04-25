@@ -39,7 +39,10 @@ impl ExternalDep {
         address: Address,
     ) -> Self {
         Self {
-            contract_spec: ContractSpec::path_name(path.as_ref().to_owned(), name),
+            contract_spec: ContractSpec::path_name(
+                path.as_ref().to_owned(),
+                name,
+            ),
             address,
         }
     }
@@ -77,6 +80,7 @@ pub struct ForgeCreate {
     rpc_url: Option<String>,
     external_deps: Vec<ExternalDep>,
     override_nonce: Option<u64>,
+    constructor_args: Vec<String>,
 }
 
 pub struct ForgeInspectAbi {
@@ -104,6 +108,7 @@ impl ForgeCreate {
             private_key: None,
             rpc_url: None,
             external_deps: vec![],
+            constructor_args: vec![],
         }
     }
 
@@ -121,7 +126,8 @@ impl ForgeCreate {
         mut self,
         override_contract_source: impl AsRef<Path>,
     ) -> Self {
-        self.override_contract_source = Some(override_contract_source.as_ref().to_owned());
+        self.override_contract_source =
+            Some(override_contract_source.as_ref().to_owned());
         self
     }
 
@@ -147,6 +153,11 @@ impl ForgeCreate {
 
     pub fn with_external_dep(mut self, external_dep: ExternalDep) -> Self {
         self.external_deps.push(external_dep);
+        self
+    }
+
+    pub fn with_constructor_arg(mut self, arg: impl ToString) -> Self {
+        self.constructor_args.push(arg.to_string());
         self
     }
 
@@ -196,6 +207,11 @@ impl ForgeCreate {
             cmd.arg(nonce.to_string());
         }
 
+        for constructor_arg in &self.constructor_args {
+            cmd.arg("--constructor-args");
+            cmd.arg(constructor_arg);
+        }
+
         if self.verify {
             cmd.arg("--verify");
         }
@@ -238,7 +254,8 @@ impl ForgeInspectAbi {
         mut self,
         override_contract_source: impl AsRef<Path>,
     ) -> Self {
-        self.override_contract_source = Some(override_contract_source.as_ref().to_owned());
+        self.override_contract_source =
+            Some(override_contract_source.as_ref().to_owned());
         self
     }
 

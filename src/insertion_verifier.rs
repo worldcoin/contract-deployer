@@ -18,7 +18,9 @@ pub struct InsertionVerifier {
 }
 
 #[instrument(skip(mtb_bin))]
-pub async fn download_semaphore_mtb_binary(mtb_bin: impl AsRef<Path>) -> eyre::Result<()> {
+pub async fn download_semaphore_mtb_binary(
+    mtb_bin: impl AsRef<Path>,
+) -> eyre::Result<()> {
     let mtb_bin = mtb_bin.as_ref();
 
     if mtb_bin.exists() {
@@ -46,7 +48,8 @@ pub async fn download_semaphore_mtb_binary(mtb_bin: impl AsRef<Path>) -> eyre::R
 
     let arch = if arch == "x64" { "amd64" } else { arch };
 
-    const MTB_RELEASES_URL: &str = "https://github.com/worldcoin/semaphore-mtb/releases/download";
+    const MTB_RELEASES_URL: &str =
+        "https://github.com/worldcoin/semaphore-mtb/releases/download";
     const MTB_VERSION: &str = "1.0.2";
 
     let url = format!("{MTB_RELEASES_URL}/{MTB_VERSION}/mtb-{os}-{arch}");
@@ -154,9 +157,11 @@ pub async fn deploy_verifier_contract(
         .parent()
         .context("Missing verifier contract parent directory")?;
 
-    let contract_spec = ContractSpec::path_name(verifier_contract.clone(), "Verifier");
+    let contract_spec =
+        ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
-    let private_key_string = hex::encode(config.private_key.to_bytes().as_slice());
+    let private_key_string =
+        hex::encode(config.private_key.to_bytes().as_slice());
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
@@ -187,7 +192,8 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     .await?;
     generate_verifier_contract(&mtb_bin_path, &keys_file).await?;
 
-    let deployment = deploy_verifier_contract(context, config, &verifier_contract).await?;
+    let deployment =
+        deploy_verifier_contract(context, config, &verifier_contract).await?;
 
     context
         .typed_map
