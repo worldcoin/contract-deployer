@@ -1,4 +1,4 @@
-use ethers::prelude::Contract;
+use ethers::prelude::{encode_function_data, Contract};
 use ethers::types::{Address, U256};
 use tracing::{info, instrument};
 
@@ -38,12 +38,6 @@ async fn deploy_world_id_identity_manager(
     let identity_manager_spec = ContractSpec::name("WorldIDIdentityManager");
     let impl_spec = ContractSpec::name("WorldIDIdentityManagerImplV1");
 
-    let identity_manager_abi =
-        ForgeInspectAbi::new(identity_manager_spec.clone())
-            .with_cwd("./world-id-contracts")
-            .run()
-            .await?;
-
     let impl_abi = ForgeInspectAbi::new(impl_spec.clone())
         .with_cwd("./world-id-contracts")
         .run()
@@ -55,40 +49,24 @@ async fn deploy_world_id_identity_manager(
     let typed_map = context.typed_map.read().await;
 
     let initial_root = typed_map.get::<InitialRoot>();
-    let signer = typed_map.get::<RpcSigner>().0.clone();
-
-    let impl_contract = Contract::new(impl_address, impl_abi, signer.clone());
 
     let initial_root =
         U256::from_big_endian(&initial_root.clone().0.to_fixed_bytes());
 
-    let call_data = impl_contract.encode(
-        "initialize",
+    let initialize_func = impl_abi.function("initialize")?;
+
+    let call_data = encode_function_data(
+        initialize_func,
         (
             config.tree_depth as u64,
             initial_root,
-            Address::default(),
-            Address::default(),
-            Address::default(),
+            Address::default(), // TODO: insertLUTTargetField
+            Address::default(), // TODO: updateLUTTargetField
+            Address::default(), // TODO: semaphoreVerifierContractAddress
             false,
-            Address::default(),
+            Address::default(), // TODO: processedStateBridgeAddress
         ),
     )?;
-
-    // let identity_manager_abi
-
-    // Initialize method args:
-    // config.treeDepth,
-    // config.initialRoot,
-    // config[insertLUTTargetField],
-    // config[updateLUTTargetField],
-    // config.semaphoreVerifierContractAddress,
-    // config.enableStateBridge,
-    // processedStateBridgeAddress,
-
-    // Constructor args:
-    // config.identityManagerImplementationContractAddress,
-    // callData = `Initialize method args`
 
     let output = ForgeCreate::new(identity_manager_spec)
         .with_cwd("./world-id-contracts")
