@@ -4,8 +4,12 @@ use tracing::{info, instrument};
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
 use crate::{Config, Context};
 
+pub struct SemaphoreVerifierDeployment {
+    pub deploy_info: ForgeOutput,
+}
+
 #[instrument(skip_all)]
-pub async fn deploy_semaphore_pairing_library(
+async fn deploy_semaphore_pairing_library(
     context: &Context,
     config: &Config,
 ) -> eyre::Result<ForgeOutput> {
@@ -25,7 +29,7 @@ pub async fn deploy_semaphore_pairing_library(
 }
 
 #[instrument(skip_all)]
-pub async fn deploy_semaphore_verifier(
+async fn deploy_semaphore_verifier(
     context: &Context,
     config: &Config,
     pairing_address: Address,
@@ -48,7 +52,12 @@ pub async fn deploy_semaphore_verifier(
         .run()
         .await?;
 
-    info!("output = {output:#?}");
+    context
+        .typed_map
+        .set(SemaphoreVerifierDeployment {
+            deploy_info: output,
+        })
+        .await;
 
     Ok(())
 }

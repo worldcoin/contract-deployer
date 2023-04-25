@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use common_keys::{InitialRoot, RpcSigner};
+use dependency_map::DependencyMap;
 use ethers::prelude::k256::SecretKey;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
@@ -18,12 +19,11 @@ use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
-use typed_map::TypedMap;
 
 pub mod common_keys;
+pub mod dependency_map;
 pub mod forge_utils;
 pub mod serde_utils;
-pub mod typed_map;
 
 mod identity_manager;
 mod insertion_verifier;
@@ -44,7 +44,7 @@ pub struct Config {
 #[derive(Debug)]
 pub struct Context {
     pub cache_dir: PathBuf,
-    pub typed_map: Arc<RwLock<TypedMap>>,
+    pub typed_map: DependencyMap,
     pub nonce: AtomicU64,
 }
 
@@ -103,9 +103,9 @@ async fn start() -> eyre::Result<()> {
 
     let initial_root_hash = H256(initial_root_hash.to_be_bytes());
 
-    let mut typed_map = TypedMap::new();
+    let typed_map = DependencyMap::new();
 
-    typed_map.insert(InitialRoot(initial_root_hash));
+    typed_map.set(InitialRoot(initial_root_hash)).await;
 
     let provider = Provider::try_from(config.rpc_url.as_str())?;
     let chain_id = provider.get_chainid().await?;
@@ -118,24 +118,25 @@ async fn start() -> eyre::Result<()> {
 
     let nonce = signer.get_transaction_count(wallet_address, None).await?;
 
-    typed_map.insert(RpcSigner(Arc::new(signer)));
+    typed_map.set(RpcSigner(Arc::new(signer))).await;
 
     let context = Context {
         cache_dir,
-        typed_map: Arc::new(RwLock::new(typed_map)),
+        typed_map,
         nonce: AtomicU64::new(nonce.as_u64()),
     };
 
-    let (insertion, semaphore) = tokio::join!(
+    let (insertion, semaphore, lookup, identity) = tokio::join!(
         insertion_verifier::deploy(&context, &config),
         semaphore_verifier::deploy(&context, &config),
+        lookup_tables::deploy(&context, &config),
+        identity_manager::deploy(&context, &config),
     );
 
     semaphore?;
     insertion?;
-
-    lookup_tables::deploy(&context, &config).await?;
-    identity_manager::deploy(&context, &config).await?;
+    lookup?;
+    identity?;
 
     Ok(())
 }

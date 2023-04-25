@@ -1,7 +1,6 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use ethers::types::Address;
 use eyre::ContextCompat;
 use tracing::{info, instrument};
 
@@ -197,9 +196,8 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
 
     context
         .typed_map
-        .write()
-        .await
-        .insert(InsertionVerifier { deployment });
+        .set(InsertionVerifier { deployment })
+        .await;
 
     Ok(())
 }
