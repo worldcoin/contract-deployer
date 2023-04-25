@@ -30,7 +30,7 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
             .run()
             .await?;
 
-    let signer = context.typed_map.get::<RpcSigner>().await.0.clone();
+    let signer = context.dep_map.get::<RpcSigner>().await.0.clone();
 
     let insert_lookup = Contract::new(
         insert_lookup_table.deployed_to,
@@ -38,7 +38,7 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
         signer.clone(),
     );
 
-    let insertion_verifier = context.typed_map.get::<InsertionVerifier>().await;
+    let insertion_verifier = context.dep_map.get::<InsertionVerifier>().await;
 
     let add_verifier = insert_lookup.encode(
         "addVerifier",

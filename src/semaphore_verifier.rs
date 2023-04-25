@@ -53,7 +53,7 @@ async fn deploy_semaphore_verifier(
         .await?;
 
     context
-        .typed_map
+        .dep_map
         .set(SemaphoreVerifierDeployment {
             deploy_info: output,
         })

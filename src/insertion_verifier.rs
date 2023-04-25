@@ -194,10 +194,7 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     let deployment =
         deploy_verifier_contract(context, config, &verifier_contract).await?;
 
-    context
-        .typed_map
-        .set(InsertionVerifier { deployment })
-        .await;
+    context.dep_map.set(InsertionVerifier { deployment }).await;
 
     Ok(())
 }

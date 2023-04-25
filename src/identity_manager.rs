@@ -47,9 +47,9 @@ async fn deploy_world_id_identity_manager(
     let private_key_string =
         hex::encode(config.private_key.to_bytes().as_slice());
 
-    let initial_root = context.typed_map.get::<InitialRoot>().await;
+    let initial_root = context.dep_map.get::<InitialRoot>().await;
     let semaphore_verifier_deployment =
-        context.typed_map.get::<SemaphoreVerifierDeployment>().await;
+        context.dep_map.get::<SemaphoreVerifierDeployment>().await;
 
     let initial_root =
         U256::from_big_endian(&initial_root.clone().0.to_fixed_bytes());

@@ -44,7 +44,7 @@ pub struct Config {
 #[derive(Debug)]
 pub struct Context {
     pub cache_dir: PathBuf,
-    pub typed_map: DependencyMap,
+    pub dep_map: DependencyMap,
     pub nonce: AtomicU64,
 }
 
@@ -122,10 +122,11 @@ async fn start() -> eyre::Result<()> {
 
     let context = Context {
         cache_dir,
-        typed_map,
+        dep_map,
         nonce: AtomicU64::new(nonce.as_u64()),
     };
 
+    // TODO: Futures unordered?
     let (insertion, semaphore, lookup, identity) = tokio::join!(
         insertion_verifier::deploy(&context, &config),
         semaphore_verifier::deploy(&context, &config),
