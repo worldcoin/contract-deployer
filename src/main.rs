@@ -103,9 +103,9 @@ async fn start() -> eyre::Result<()> {
 
     let initial_root_hash = H256(initial_root_hash.to_be_bytes());
 
-    let typed_map = DependencyMap::new();
+    let dep_map = DependencyMap::new();
 
-    typed_map.set(InitialRoot(initial_root_hash)).await;
+    dep_map.set(InitialRoot(initial_root_hash)).await;
 
     let provider = Provider::try_from(config.rpc_url.as_str())?;
     let chain_id = provider.get_chainid().await?;
@@ -118,7 +118,7 @@ async fn start() -> eyre::Result<()> {
 
     let nonce = signer.get_transaction_count(wallet_address, None).await?;
 
-    typed_map.set(RpcSigner(Arc::new(signer))).await;
+    dep_map.set(RpcSigner(Arc::new(signer))).await;
 
     let context = Context {
         cache_dir,
