@@ -42,13 +42,14 @@ pub struct Config {
 }
 
 #[derive(Debug)]
-pub struct Context {
+pub struct DeploymentContext {
+    pub deployment_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub dep_map: DependencyMap,
     pub nonce: AtomicU64,
 }
 
-impl Context {
+impl DeploymentContext {
     pub fn next_nonce(&self) -> u64 {
         self.nonce.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
@@ -93,7 +94,9 @@ async fn start() -> eyre::Result<()> {
 
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
-    let cache_dir = PathBuf::from(cmd.deployment_name);
+    let deployment_dir = PathBuf::from(cmd.deployment_name);
+    let cache_dir = deployment_dir.join(".cache");
+
     tokio::fs::create_dir_all(&cache_dir).await?;
 
     let initial_leaf_value = Field::from_be_bytes(config.initial_leaf_value.0);
@@ -120,7 +123,8 @@ async fn start() -> eyre::Result<()> {
 
     dep_map.set(RpcSigner(Arc::new(signer))).await;
 
-    let context = Context {
+    let context = DeploymentContext {
+        deployment_dir,
         cache_dir,
         dep_map,
         nonce: AtomicU64::new(nonce.as_u64()),

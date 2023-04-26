@@ -10,7 +10,7 @@ use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
 use crate::insertion_verifier::InsertionVerifier;
-use crate::{Config, Context};
+use crate::{Config, DeploymentContext};
 
 pub struct UpdateLookupTable {
     pub deploy_info: ForgeOutput,
@@ -22,7 +22,7 @@ pub struct InsertLookupTable {
 
 #[instrument(skip_all)]
 async fn deploy_insert_lookup_table(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
 ) -> eyre::Result<()> {
     let private_key_string =
@@ -95,7 +95,7 @@ async fn deploy_insert_lookup_table(
 
 #[instrument(skip_all)]
 async fn deploy_update_lookup_table(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
 ) -> eyre::Result<()> {
     let private_key_string =
@@ -120,7 +120,10 @@ async fn deploy_update_lookup_table(
     Ok(())
 }
 
-pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
+pub async fn deploy(
+    context: &DeploymentContext,
+    config: &Config,
+) -> eyre::Result<()> {
     let (insert, update) = tokio::join!(
         deploy_insert_lookup_table(context, config),
         deploy_update_lookup_table(context, config)

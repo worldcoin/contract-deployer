@@ -8,7 +8,7 @@ use crate::forge_utils::{
 };
 use crate::lookup_tables::{InsertLookupTable, UpdateLookupTable};
 use crate::semaphore_verifier::SemaphoreVerifierDeployment;
-use crate::{Config, Context};
+use crate::{Config, DeploymentContext};
 
 pub struct WorldIDIdentityManagerDeployment {
     pub deploy_info: ForgeOutput,
@@ -16,7 +16,7 @@ pub struct WorldIDIdentityManagerDeployment {
 
 #[instrument(skip_all)]
 async fn deploy_identity_manager_impl(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
 ) -> eyre::Result<ForgeOutput> {
     let contract_spec = ContractSpec::name("WorldIDIdentityManagerImplV1");
@@ -37,7 +37,7 @@ async fn deploy_identity_manager_impl(
 
 #[instrument(skip_all)]
 async fn deploy_world_id_identity_manager(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
     impl_address: Address,
 ) -> eyre::Result<()> {
@@ -96,7 +96,10 @@ async fn deploy_world_id_identity_manager(
     Ok(())
 }
 
-pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
+pub async fn deploy(
+    context: &DeploymentContext,
+    config: &Config,
+) -> eyre::Result<()> {
     let identity_manager_impl =
         deploy_identity_manager_impl(context, config).await?;
 

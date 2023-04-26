@@ -5,7 +5,7 @@ use eyre::ContextCompat;
 use tracing::instrument;
 
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
-use crate::{Config, Context};
+use crate::{Config, DeploymentContext};
 
 const MTB_BIN: &str = "mtb";
 const KEYS: &str = "keys";
@@ -147,7 +147,7 @@ pub async fn generate_verifier_contract(
 
 #[instrument(skip_all)]
 pub async fn deploy_verifier_contract(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
     verifier_contract: impl AsRef<Path>,
 ) -> eyre::Result<ForgeOutput> {
@@ -176,7 +176,10 @@ pub async fn deploy_verifier_contract(
     Ok(output)
 }
 
-pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
+pub async fn deploy(
+    context: &DeploymentContext,
+    config: &Config,
+) -> eyre::Result<()> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
     let keys_file = context.cache_dir.join(KEYS);
     let verifier_contract = context.cache_dir.join(VERIFIER_CONTRACT);

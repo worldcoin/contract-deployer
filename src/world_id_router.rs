@@ -7,11 +7,11 @@ use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
 use crate::identity_manager::WorldIDIdentityManagerDeployment;
-use crate::{Config, Context};
+use crate::{Config, DeploymentContext};
 
 #[instrument(skip_all)]
 async fn deploy_world_id_router_implementation(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
 ) -> eyre::Result<ForgeOutput> {
     let contract_spec = ContractSpec::name("WorldIDRouterImplV1");
@@ -32,7 +32,7 @@ async fn deploy_world_id_router_implementation(
 
 #[instrument(skip_all)]
 async fn deploy_world_id_router_proxy(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
     impl_address: Address,
 ) -> eyre::Result<ForgeOutput> {
@@ -72,7 +72,10 @@ async fn deploy_world_id_router_proxy(
     Ok(world_id_router)
 }
 
-pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
+pub async fn deploy(
+    context: &DeploymentContext,
+    config: &Config,
+) -> eyre::Result<()> {
     let world_id_router =
         deploy_world_id_router_implementation(context, config)
             .await

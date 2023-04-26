@@ -2,7 +2,7 @@ use ethers::types::Address;
 use tracing::instrument;
 
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
-use crate::{Config, Context};
+use crate::{Config, DeploymentContext};
 
 pub struct SemaphoreVerifierDeployment {
     pub deploy_info: ForgeOutput,
@@ -10,7 +10,7 @@ pub struct SemaphoreVerifierDeployment {
 
 #[instrument(skip_all)]
 async fn deploy_semaphore_pairing_library(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
 ) -> eyre::Result<ForgeOutput> {
     let contract_spec = ContractSpec::name("Pairing");
@@ -30,7 +30,7 @@ async fn deploy_semaphore_pairing_library(
 
 #[instrument(skip_all)]
 async fn deploy_semaphore_verifier(
-    context: &Context,
+    context: &DeploymentContext,
     config: &Config,
     pairing_address: Address,
 ) -> eyre::Result<()> {
@@ -62,7 +62,10 @@ async fn deploy_semaphore_verifier(
     Ok(())
 }
 
-pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
+pub async fn deploy(
+    context: &DeploymentContext,
+    config: &Config,
+) -> eyre::Result<()> {
     let output = deploy_semaphore_pairing_library(context, config).await?;
 
     let pairing_address = output.deployed_to;
