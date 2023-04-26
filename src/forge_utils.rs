@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use ethers::types::{Address, H256};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{info, instrument};
 
 #[derive(Debug, Clone)]
 pub struct ContractSpec {
@@ -161,6 +161,7 @@ impl ForgeCreate {
         self
     }
 
+    #[instrument(skip_all)]
     pub async fn run(&self) -> eyre::Result<ForgeOutput> {
         let mut cmd = tokio::process::Command::new("forge");
         cmd.arg("create");

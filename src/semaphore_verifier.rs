@@ -1,5 +1,5 @@
 use ethers::types::Address;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
 use crate::{Config, Context};
@@ -62,7 +62,6 @@ async fn deploy_semaphore_verifier(
     Ok(())
 }
 
-#[instrument(name = "Semaphore Verifier", skip_all)]
 pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     let output = deploy_semaphore_pairing_library(context, config).await?;
 

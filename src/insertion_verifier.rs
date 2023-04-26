@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use eyre::ContextCompat;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
 use crate::{Config, Context};
@@ -118,10 +118,12 @@ pub async fn generate_keys(
 pub async fn generate_verifier_contract(
     mtb_binary: impl AsRef<OsStr>,
     keys_file: impl AsRef<Path>,
+    verifier_contract: impl AsRef<Path>,
 ) -> eyre::Result<()> {
     let keys_file = keys_file.as_ref();
+    let verifier_contract = verifier_contract.as_ref();
 
-    if keys_file.exists() {
+    if verifier_contract.exists() {
         return Ok(());
     }
 
@@ -130,7 +132,7 @@ pub async fn generate_verifier_contract(
         .arg("--keys-file")
         .arg(keys_file)
         .arg("--output")
-        .arg("./verifier.sol")
+        .arg(verifier_contract)
         .spawn()?
         .wait_with_output()
         .await?;
@@ -174,7 +176,6 @@ pub async fn deploy_verifier_contract(
     Ok(output)
 }
 
-#[instrument(name = "Insertion Verifier", skip_all)]
 pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
     let keys_file = context.cache_dir.join(KEYS);
@@ -189,7 +190,8 @@ pub async fn deploy(context: &Context, config: &Config) -> eyre::Result<()> {
         config.batch_size,
     )
     .await?;
-    generate_verifier_contract(&mtb_bin_path, &keys_file).await?;
+    generate_verifier_contract(&mtb_bin_path, &keys_file, &verifier_contract)
+        .await?;
 
     let deployment =
         deploy_verifier_contract(context, config, &verifier_contract).await?;

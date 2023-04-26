@@ -13,7 +13,6 @@ use ethers::types::H256;
 use semaphore::poseidon_tree::LazyPoseidonTree;
 use semaphore::Field;
 use serde::{Deserialize, Serialize};
-use tokio::sync::RwLock;
 use tracing::{info, instrument};
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -29,6 +28,7 @@ mod identity_manager;
 mod insertion_verifier;
 mod lookup_tables;
 mod semaphore_verifier;
+mod world_id_router;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -127,17 +127,19 @@ async fn start() -> eyre::Result<()> {
     };
 
     // TODO: Futures unordered?
-    let (insertion, semaphore, lookup, identity) = tokio::join!(
+    let (insertion, semaphore, lookup, identity, world_id_router) = tokio::join!(
         insertion_verifier::deploy(&context, &config),
         semaphore_verifier::deploy(&context, &config),
         lookup_tables::deploy(&context, &config),
         identity_manager::deploy(&context, &config),
+        world_id_router::deploy(&context, &config),
     );
 
     semaphore?;
     insertion?;
     lookup?;
     identity?;
+    world_id_router?;
 
     Ok(())
 }

@@ -2,15 +2,14 @@ use std::path::Path;
 
 use eyre::Context;
 use serde::de::DeserializeOwned;
-use tracing::instrument;
 
 pub mod secret_key {
     use ethers::prelude::k256::SecretKey;
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(
-        key: &SecretKey,
-        serializer: S,
+        _key: &SecretKey,
+        _serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -30,7 +29,7 @@ pub mod secret_key {
 
         let bytes = hex::decode(s).map_err(serde::de::Error::custom)?;
 
-        Ok(SecretKey::from_slice(&bytes).map_err(serde::de::Error::custom)?)
+        SecretKey::from_slice(&bytes).map_err(serde::de::Error::custom)
     }
 }
 

@@ -1,13 +1,18 @@
-use ethers::prelude::{encode_function_data, Contract};
+use ethers::prelude::encode_function_data;
 use ethers::types::{Address, U256};
-use tracing::{info, instrument};
+use tracing::instrument;
 
-use crate::common_keys::{InitialRoot, RpcSigner};
+use crate::common_keys::InitialRoot;
 use crate::forge_utils::{
-    ContractSpec, ExternalDep, ForgeCreate, ForgeInspectAbi, ForgeOutput,
+    ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
+use crate::lookup_tables::{InsertLookupTable, UpdateLookupTable};
 use crate::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::{Config, Context};
+
+pub struct WorldIDIdentityManagerDeployment {
+    pub deploy_info: ForgeOutput,
+}
 
 #[instrument(skip_all)]
 async fn deploy_identity_manager_impl(
@@ -50,6 +55,8 @@ async fn deploy_world_id_identity_manager(
     let initial_root = context.dep_map.get::<InitialRoot>().await;
     let semaphore_verifier_deployment =
         context.dep_map.get::<SemaphoreVerifierDeployment>().await;
+    let insert_lookup_table = context.dep_map.get::<InsertLookupTable>().await;
+    let update_lookup_table = context.dep_map.get::<UpdateLookupTable>().await;
 
     let initial_root =
         U256::from_big_endian(&initial_root.clone().0.to_fixed_bytes());
@@ -61,8 +68,8 @@ async fn deploy_world_id_identity_manager(
         (
             config.tree_depth as u64,
             initial_root,
-            Address::default(), // TODO: insertLUTTargetField
-            Address::default(), // TODO: updateLUTTargetField
+            insert_lookup_table.deploy_info.deployed_to,
+            update_lookup_table.deploy_info.deployed_to,
             semaphore_verifier_deployment.deploy_info.deployed_to,
             false,
             Address::default(), // TODO: processedStateBridgeAddress
@@ -79,7 +86,12 @@ async fn deploy_world_id_identity_manager(
         .run()
         .await?;
 
-    info!("Deployed IdentityManager: {:?}", output);
+    context
+        .dep_map
+        .set(WorldIDIdentityManagerDeployment {
+            deploy_info: output,
+        })
+        .await;
 
     Ok(())
 }

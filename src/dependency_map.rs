@@ -17,9 +17,7 @@ pub struct DependencyMap {
 
 impl DependencyMap {
     pub fn new() -> Self {
-        Self {
-            map: Mutex::new(HashMap::new()),
-        }
+        Self::default()
     }
 
     pub async fn set<T: 'static + Send + Sync>(&self, value: T) {
@@ -72,6 +70,14 @@ impl DependencyMap {
             .clone()
             .downcast()
             .expect("Failed to downcast")
+    }
+}
+
+impl Default for DependencyMap {
+    fn default() -> Self {
+        Self {
+            map: Mutex::new(HashMap::new()),
+        }
     }
 }
 
