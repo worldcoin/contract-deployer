@@ -42,7 +42,9 @@ where
         .await
         .with_context(|| format!("Reading from {}", path.display()))?;
 
-    let value = toml::from_str(&content)?;
+    let value = serde_yaml::from_str(&content).with_context(|| {
+        format!("Parsing {} content was {content}", path.display())
+    })?;
 
     Ok(value)
 }

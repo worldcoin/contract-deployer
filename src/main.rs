@@ -27,13 +27,13 @@ pub mod serde_utils;
 pub mod utils;
 
 mod args;
-mod identity_manager;
+// mod identity_manager;
 mod insertion_verifier;
-mod lookup_tables;
+// mod lookup_tables;
 mod report;
-mod semaphore_verifier;
+// mod semaphore_verifier;
 mod types;
-mod world_id_router;
+// mod world_id_router;
 
 pub const REPORT_PATH: &str = "report.yml";
 
@@ -175,19 +175,13 @@ async fn start() -> eyre::Result<()> {
     let context = Arc::new(context);
 
     // TODO: Futures unordered?
-    let (insertion, semaphore, lookup, identity, world_id_router) = tokio::join!(
-        insertion_verifier::deploy(context.clone(), &config),
-        semaphore_verifier::deploy(context.as_ref(), &config),
-        lookup_tables::deploy(context.as_ref(), &config),
-        identity_manager::deploy(context.as_ref(), &config),
-        world_id_router::deploy(context.as_ref(), &config),
-    );
+    let insertion = insertion_verifier::deploy(context.clone(), &config);
 
-    semaphore?;
-    insertion?;
-    lookup?;
-    identity?;
-    world_id_router?;
+    insertion.await?;
+    // semaphore?;
+    // lookup?;
+    // identity?;
+    // world_id_router?;
 
     Ok(())
 }

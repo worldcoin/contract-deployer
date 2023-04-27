@@ -13,8 +13,8 @@ use crate::types::{BatchSize, TreeDepth};
 use crate::{Config, DeploymentContext};
 
 const MTB_BIN: &str = "mtb";
-const KEYS: &str = "keys";
-const VERIFIER_CONTRACT: &str = "verifier.sol";
+const KEYS_DIR: &str = "keys";
+const VERIFIER_CONTRACTS_DIR: &str = "verifier_contracts";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct InsertionVerifier {
@@ -167,9 +167,6 @@ pub async fn generate_verifier_contract(
     Ok(verifier_contract)
 }
 
-const KEYS_DIR: &str = "keys";
-const VERIFIER_CONTRACTS_DIR: &str = "verifier_contracts";
-
 fn verifier_contract_filename(
     tree_depth: TreeDepth,
     batch_size: BatchSize,
@@ -208,8 +205,6 @@ pub async fn deploy(
     config: &Config,
 ) -> eyre::Result<()> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
-    let keys_file = context.cache_dir.join(KEYS);
-    let verifier_contract = context.cache_dir.join(VERIFIER_CONTRACT);
 
     download_semaphore_mtb_binary(context.as_ref(), config).await?;
 
@@ -235,7 +230,7 @@ pub async fn deploy(
         let context = context.clone();
 
         // but we can parallelize verifier contract generation and deployment
-        deployment_tasks.push(tokio::task::spawn_local(async move {
+        deployment_tasks.push(tokio::spawn(async move {
             let verifier_contract_path = generate_verifier_contract(
                 mtb_bin_path,
                 keys_file,
