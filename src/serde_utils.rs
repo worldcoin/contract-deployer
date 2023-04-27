@@ -2,6 +2,7 @@ use std::path::Path;
 
 use eyre::Context;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 pub mod secret_key {
     use ethers::prelude::k256::SecretKey;
@@ -47,4 +48,23 @@ where
     })?;
 
     Ok(value)
+}
+
+pub async fn write_serialize<T>(
+    path: impl AsRef<Path>,
+    value: T,
+) -> eyre::Result<()>
+where
+    T: Serialize,
+{
+    let path = path.as_ref();
+
+    let content = serde_yaml::to_string(&value)
+        .with_context(|| format!("Serializing {}", path.display()))?;
+
+    tokio::fs::write(path, content)
+        .await
+        .with_context(|| format!("Writing to {}", path.display()))?;
+
+    Ok(())
 }

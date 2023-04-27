@@ -6,9 +6,9 @@ use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Report {
-    config: Config,
+    pub config: Config,
 
-    verifiers: InsertionVerifiers,
+    pub verifiers: InsertionVerifiers,
     // lookup_tables: LookupTables,
 }
 

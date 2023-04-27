@@ -10,6 +10,7 @@ groups:
     tree_depth: 16
     batch_sizes:
       - 3
+      - 5
 
 misc:
   initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"

@@ -1,24 +1,22 @@
-use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use args::DeploymentArgs;
+use assemble_report::REPORT_PATH;
 use clap::Parser;
 use common_keys::RpcSigner;
+use config::Config;
 use dependency_map::DependencyMap;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
-use ethers::types::H256;
 use report::Report;
-use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
-use types::{BatchSize, GroupId, TreeDepth};
 
 pub mod common_keys;
 pub mod dependency_map;
@@ -27,49 +25,15 @@ pub mod serde_utils;
 pub mod utils;
 
 mod args;
+mod config;
 // mod identity_manager;
+mod assemble_report;
 mod insertion_verifier;
 // mod lookup_tables;
 mod report;
 // mod semaphore_verifier;
 mod types;
 // mod world_id_router;
-
-pub const REPORT_PATH: &str = "report.yml";
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
-    pub groups: HashMap<GroupId, GroupConfig>,
-    pub misc: MiscConfig,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MiscConfig {
-    #[serde(default)]
-    pub initial_leaf_value: H256,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GroupConfig {
-    pub tree_depth: TreeDepth,
-    pub batch_sizes: Vec<BatchSize>,
-}
-
-impl Config {
-    pub fn unique_tree_depths_and_batch_sizes(
-        &self,
-    ) -> HashSet<(TreeDepth, BatchSize)> {
-        let mut result = HashSet::new();
-
-        for group in self.groups.values() {
-            for batch_size in &group.batch_sizes {
-                result.insert((group.tree_depth, *batch_size));
-            }
-        }
-
-        result
-    }
-}
 
 #[derive(Debug)]
 pub struct DeploymentContext {
@@ -173,15 +137,23 @@ async fn start() -> eyre::Result<()> {
     };
 
     let context = Arc::new(context);
+    let config = Arc::new(config);
 
-    // TODO: Futures unordered?
-    let insertion = insertion_verifier::deploy(context.clone(), &config);
+    let mut tasks = vec![];
+    tasks.push(tokio::spawn(insertion_verifier::deploy(
+        context.clone(),
+        config.clone(),
+    )));
 
-    insertion.await?;
-    // semaphore?;
-    // lookup?;
-    // identity?;
-    // world_id_router?;
+    tasks.push(tokio::spawn(assemble_report::assemble_report(
+        context.clone(),
+        config.clone(),
+    )));
+
+    let results = futures::future::try_join_all(tasks).await?;
+    for result in results {
+        result?;
+    }
 
     Ok(())
 }

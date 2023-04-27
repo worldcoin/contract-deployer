@@ -6,11 +6,12 @@ use std::sync::Arc;
 use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
-use tracing::instrument;
+use tracing::{info, instrument};
 
+use crate::config::Config;
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
 use crate::types::{BatchSize, TreeDepth};
-use crate::{Config, DeploymentContext};
+use crate::DeploymentContext;
 
 const MTB_BIN: &str = "mtb";
 const KEYS_DIR: &str = "keys";
@@ -178,8 +179,20 @@ fn verifier_contract_filename(
 pub async fn deploy_verifier_contract(
     context: &DeploymentContext,
     verifier_contract: impl AsRef<Path>,
+    tree_depth: TreeDepth,
+    batch_size: BatchSize,
 ) -> eyre::Result<ForgeOutput> {
     let verifier_contract = verifier_contract.as_ref().canonicalize()?;
+
+    if let Some(existing_deployment) = context
+        .report
+        .verifiers
+        .verifiers
+        .get(&(tree_depth, batch_size))
+    {
+        info!("Found previous verifier deployment for tree depth {tree_depth} and batch size {batch_size} at {:?}", existing_deployment.deployment.deployed_to);
+        return Ok(existing_deployment.deployment.clone());
+    }
 
     let verifier_contract_parent = verifier_contract
         .parent()
@@ -202,11 +215,11 @@ pub async fn deploy_verifier_contract(
 
 pub async fn deploy(
     context: Arc<DeploymentContext>,
-    config: &Config,
+    config: Arc<Config>,
 ) -> eyre::Result<()> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
 
-    download_semaphore_mtb_binary(context.as_ref(), config).await?;
+    download_semaphore_mtb_binary(context.as_ref(), config.as_ref()).await?;
 
     let verifier_contracts_dir = context.cache_path(VERIFIER_CONTRACTS_DIR);
     let keys_dir = context.cache_path(KEYS_DIR);
@@ -243,6 +256,8 @@ pub async fn deploy(
             let deployment = deploy_verifier_contract(
                 context.as_ref(),
                 verifier_contract_path,
+                tree_depth,
+                batch_size,
             )
             .await?;
 
