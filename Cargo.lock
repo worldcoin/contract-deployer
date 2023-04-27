@@ -617,11 +617,14 @@ dependencies = [
  "hex",
  "hex-literal 0.4.1",
  "indicatif 0.17.3",
+ "maplit",
  "os_info",
  "reqwest",
  "semaphore",
  "serde",
  "serde_json",
+ "serde_yaml",
+ "shrinkwraprs",
  "sys-info",
  "tempfile",
  "tokio",
@@ -1326,7 +1329,7 @@ dependencies = [
  "clap 2.34.0",
  "criterion-plot",
  "csv",
- "itertools",
+ "itertools 0.10.5",
  "lazy_static",
  "num-traits",
  "oorandom",
@@ -1348,7 +1351,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2673cc8207403546f45f5fd319a974b1e6983ad1a3ee7e6041650013be041876"
 dependencies = [
  "cast 0.3.0",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -2495,7 +2498,7 @@ dependencies = [
  "foundry-config",
  "foundry-utils",
  "futures-util",
- "itertools",
+ "itertools 0.10.5",
  "mdbook",
  "once_cell",
  "rayon",
@@ -2515,7 +2518,7 @@ dependencies = [
  "ariadne",
  "ethers-core 2.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "foundry-config",
- "itertools",
+ "itertools 0.10.5",
  "semver 1.0.17",
  "solang-parser",
  "thiserror",
@@ -2561,7 +2564,7 @@ dependencies = [
  "hex",
  "indicatif 0.17.3",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "once_cell",
  "parking_lot",
  "path-slash",
@@ -2665,7 +2668,7 @@ dependencies = [
  "futures",
  "hashbrown 0.13.2",
  "hex",
- "itertools",
+ "itertools 0.10.5",
  "jsonpath_lib",
  "once_cell",
  "ordered-float",
@@ -3701,6 +3704,15 @@ dependencies = [
 
 [[package]]
 name = "itertools"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
@@ -3810,7 +3822,7 @@ dependencies = [
  "diff",
  "ena",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "lalrpop-util",
  "petgraph",
  "pico-args",
@@ -5889,7 +5901,7 @@ name = "semaphore-depth-macros"
 version = "0.1.0"
 source = "git+https://github.com/worldcoin/semaphore-rs?branch=main#1fa1471a13539af2f859478a0c9108adfe7535ca"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "semaphore-depth-config",
@@ -6018,6 +6030,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9d684e3ec7de3bf5466b32bd75303ac16f0736426e5a4e0d6e489559ce1249c"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6088,6 +6113,19 @@ name = "shlex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
+
+[[package]]
+name = "shrinkwraprs"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e63e6744142336dfb606fe2b068afa2e1cca1ee6a5d8377277a92945d81fa331"
+dependencies = [
+ "bitflags",
+ "itertools 0.8.2",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "signal-hook"
@@ -6188,7 +6226,7 @@ version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c5ead679f39243782be98c2689e592fc0fc9489ca2e47c9e027bd30f948df31"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "lalrpop",
  "lalrpop-util",
  "phf 0.11.1",
@@ -6312,7 +6350,7 @@ dependencies = [
  "hex",
  "home",
  "indicatif 0.16.2",
- "itertools",
+ "itertools 0.10.5",
  "once_cell",
  "rand",
  "reqwest",
@@ -7006,6 +7044,12 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1865806a559042e51ab5414598446a5871b561d21b6764f2eabb0dd481d880a6"
 
 [[package]]
 name = "untrusted"

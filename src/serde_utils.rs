@@ -8,16 +8,15 @@ pub mod secret_key {
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(
-        _key: &SecretKey,
-        _serializer: S,
+        key: &SecretKey,
+        serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        // let mut bytes = [0u8; 32];
-        // key.write(&mut bytes[..])?;
-        // serializer.serialize_str(&hex::encode(&bytes))
-        todo!()
+        let gen_arr = key.to_bytes();
+        let bytes = gen_arr.as_slice();
+        serializer.serialize_str(&hex::encode(&bytes))
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<SecretKey, D::Error>

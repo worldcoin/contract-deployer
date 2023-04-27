@@ -1,0 +1,15 @@
+groups:
+  # Orb
+  0:
+    tree_depth: 16
+    batch_sizes:
+      - 3
+      - 10
+  # Phone
+  1:
+    tree_depth: 16
+    batch_sizes:
+      - 3
+
+# Misc
+initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"

@@ -1,0 +1,38 @@
+config:
+  rpc_url: '0'
+  private_key: 5fe83025a3c43318321d6cba06de6f5b7ebe4346ba069b94b9c4a3b5b4864cc9
+  tree_depth: 16
+  batch_size: 3
+  batch_sizes:
+  - 3
+  groups:
+    0:
+      tree_depth: 16
+      batch_sizes:
+      - 3
+  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+verifiers:
+  groups:
+    0:
+      batch_sizes:
+        3:
+          deployer: '0x0000000000000000000000000000000000000000'
+          deployedTo: '0x0000000000000000000000000000000000000000'
+          transactionHash: '0x0000000000000000000000000000000000000000000000000000000000000000'
+lookup_tables:
+  groups:
+    0:
+      batch_sizes:
+        3:
+          insert:
+            deploy_info:
+              deployer: '0x0000000000000000000000000000000000000000'
+              deployedTo: '0x0000000000000000000000000000000000000000'
+              transactionHash: '0x0000000000000000000000000000000000000000000000000000000000000000'
+            entries:
+              3: '0x0000000000000000000000000000000000000000'
+          update:
+            deploy_info:
+              deployer: '0x0000000000000000000000000000000000000000'
+              deployedTo: '0x0000000000000000000000000000000000000000'
+              transactionHash: '0x0000000000000000000000000000000000000000000000000000000000000000'
