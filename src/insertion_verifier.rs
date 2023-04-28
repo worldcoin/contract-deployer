@@ -97,7 +97,7 @@ fn keys_file_format(tree_depth: TreeDepth, batch_size: BatchSize) -> PathBuf {
     PathBuf::from(format!("keys_{tree_depth}_{batch_size}"))
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(mtb_binary, keys_dir))]
 pub async fn generate_keys(
     mtb_binary: impl AsRef<OsStr>,
     keys_dir: impl AsRef<Path>,
@@ -132,7 +132,7 @@ pub async fn generate_keys(
     Ok(keys_file)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(mtb_binary, keys_file, verifier_contracts_dir))]
 pub async fn generate_verifier_contract(
     mtb_binary: impl AsRef<OsStr>,
     keys_file: impl AsRef<Path>,
@@ -175,7 +175,7 @@ fn verifier_contract_filename(
     PathBuf::from(format!("verifier_{batch_size}_{tree_depth}.sol"))
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(context, verifier_contract))]
 pub async fn deploy_verifier_contract(
     context: &DeploymentContext,
     verifier_contract: impl AsRef<Path>,
@@ -213,6 +213,7 @@ pub async fn deploy_verifier_contract(
     Ok(output)
 }
 
+#[instrument(name = "verifiers", skip_all)]
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,

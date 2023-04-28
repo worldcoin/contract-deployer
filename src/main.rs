@@ -11,8 +11,9 @@ use dependency_map::DependencyMap;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use report::Report;
-use tracing::instrument;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -29,7 +30,7 @@ mod config;
 // mod identity_manager;
 mod assemble_report;
 mod insertion_verifier;
-// mod lookup_tables;
+mod lookup_tables;
 mod report;
 // mod semaphore_verifier;
 mod types;
@@ -91,7 +92,6 @@ async fn main() -> eyre::Result<()> {
     start().await
 }
 
-#[instrument]
 async fn start() -> eyre::Result<()> {
     let cmd = Cmd::parse();
 
@@ -139,20 +139,20 @@ async fn start() -> eyre::Result<()> {
     let context = Arc::new(context);
     let config = Arc::new(config);
 
-    let mut tasks = vec![];
-    tasks.push(tokio::spawn(insertion_verifier::deploy(
-        context.clone(),
-        config.clone(),
-    )));
+    let mut tasks = FuturesUnordered::new();
 
-    tasks.push(tokio::spawn(assemble_report::assemble_report(
-        context.clone(),
-        config.clone(),
-    )));
+    macro_rules! spawn_step {
+        ($step:path) => {
+            tasks.push(tokio::spawn($step(context.clone(), config.clone())));
+        };
+    }
 
-    let results = futures::future::try_join_all(tasks).await?;
-    for result in results {
-        result?;
+    spawn_step!(insertion_verifier::deploy);
+    spawn_step!(lookup_tables::deploy);
+    spawn_step!(assemble_report::assemble_report);
+
+    while let Some(task_finished) = tasks.next().await {
+        task_finished??;
     }
 
     Ok(())

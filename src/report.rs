@@ -1,15 +1,18 @@
 use serde::{Deserialize, Serialize};
 
 use crate::insertion_verifier::InsertionVerifiers;
-// use crate::lookup_tables::LookupTables;
+use crate::lookup_tables::LookupTables;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Report {
     pub config: Config,
 
+    #[serde(default)]
     pub verifiers: InsertionVerifiers,
-    // lookup_tables: LookupTables,
+
+    #[serde(default)]
+    pub lookup_tables: LookupTables,
 }
 
 impl Report {
@@ -17,7 +20,7 @@ impl Report {
         Self {
             config: config.clone(),
             verifiers: Default::default(),
-            // lookup_tables: Default::default(),
+            lookup_tables: Default::default(),
         }
     }
 }

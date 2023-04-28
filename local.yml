@@ -1,7 +1,7 @@
 groups:
   # Orb
   0:
-    tree_depth: 16
+    tree_depth: 20
     batch_sizes:
       - 3
       - 10
@@ -11,6 +11,7 @@ groups:
     batch_sizes:
       - 3
       - 5
+      - 10
 
 misc:
   initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"
