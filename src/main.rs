@@ -32,7 +32,7 @@ mod assemble_report;
 mod insertion_verifier;
 mod lookup_tables;
 mod report;
-// mod semaphore_verifier;
+mod semaphore_verifier;
 mod types;
 // mod world_id_router;
 
@@ -150,6 +150,7 @@ async fn start() -> eyre::Result<()> {
     spawn_step!(insertion_verifier::deploy);
     spawn_step!(lookup_tables::deploy);
     spawn_step!(assemble_report::assemble_report);
+    spawn_step!(semaphore_verifier::deploy);
 
     while let Some(task_finished) = tasks.next().await {
         task_finished??;

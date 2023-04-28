@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::insertion_verifier::InsertionVerifiers;
 use crate::lookup_tables::LookupTables;
+use crate::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -13,6 +14,9 @@ pub struct Report {
 
     #[serde(default)]
     pub lookup_tables: LookupTables,
+
+    #[serde(default)]
+    pub semaphore_verifier: Option<SemaphoreVerifierDeployment>,
 }
 
 impl Report {
@@ -21,6 +25,7 @@ impl Report {
             config: config.clone(),
             verifiers: Default::default(),
             lookup_tables: Default::default(),
+            semaphore_verifier: Default::default(),
         }
     }
 }
