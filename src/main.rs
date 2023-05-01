@@ -26,9 +26,9 @@ pub mod serde_utils;
 pub mod utils;
 
 mod args;
-mod config;
-// mod identity_manager;
 mod assemble_report;
+mod config;
+mod identity_manager;
 mod insertion_verifier;
 mod lookup_tables;
 mod report;
@@ -151,6 +151,7 @@ async fn start() -> eyre::Result<()> {
     spawn_step!(lookup_tables::deploy);
     spawn_step!(assemble_report::assemble_report);
     spawn_step!(semaphore_verifier::deploy);
+    spawn_step!(identity_manager::deploy);
 
     while let Some(task_finished) = tasks.next().await {
         task_finished??;

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use tokio::sync::{Mutex, Notify};
-use tracing::info;
 
 #[derive(Debug)]
 pub struct NotifyCell {

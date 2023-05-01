@@ -17,7 +17,7 @@ pub mod secret_key {
     {
         let gen_arr = key.to_bytes();
         let bytes = gen_arr.as_slice();
-        serializer.serialize_str(&hex::encode(&bytes))
+        serializer.serialize_str(&hex::encode(bytes))
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<SecretKey, D::Error>

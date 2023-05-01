@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::insertion_verifier::InsertionVerifiers;
 use crate::lookup_tables::LookupTables;
 use crate::semaphore_verifier::SemaphoreVerifierDeployment;
@@ -17,6 +18,9 @@ pub struct Report {
 
     #[serde(default)]
     pub semaphore_verifier: Option<SemaphoreVerifierDeployment>,
+
+    #[serde(default)]
+    pub identity_managers: WorldIDIdentityManagersDeployment,
 }
 
 impl Report {
@@ -26,6 +30,7 @@ impl Report {
             verifiers: Default::default(),
             lookup_tables: Default::default(),
             semaphore_verifier: Default::default(),
+            identity_managers: Default::default(),
         }
     }
 }
