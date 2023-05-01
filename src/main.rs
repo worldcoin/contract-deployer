@@ -34,7 +34,7 @@ mod lookup_tables;
 mod report;
 mod semaphore_verifier;
 mod types;
-// mod world_id_router;
+mod world_id_router;
 
 #[derive(Debug)]
 pub struct DeploymentContext {
@@ -152,6 +152,7 @@ async fn start() -> eyre::Result<()> {
     spawn_step!(assemble_report::assemble_report);
     spawn_step!(semaphore_verifier::deploy);
     spawn_step!(identity_manager::deploy);
+    spawn_step!(world_id_router::deploy);
 
     while let Some(task_finished) = tasks.next().await {
         task_finished??;

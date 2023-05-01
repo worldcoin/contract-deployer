@@ -4,6 +4,7 @@ use crate::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::insertion_verifier::InsertionVerifiers;
 use crate::lookup_tables::LookupTables;
 use crate::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::world_id_router::WorldIdRouterDeployment;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -21,6 +22,9 @@ pub struct Report {
 
     #[serde(default)]
     pub identity_managers: WorldIDIdentityManagersDeployment,
+
+    #[serde(default)]
+    pub world_id_router: Option<WorldIdRouterDeployment>,
 }
 
 impl Report {
@@ -31,6 +35,7 @@ impl Report {
             lookup_tables: Default::default(),
             semaphore_verifier: Default::default(),
             identity_managers: Default::default(),
+            world_id_router: Default::default(),
         }
     }
 }

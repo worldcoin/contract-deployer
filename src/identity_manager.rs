@@ -1,11 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use ethers::prelude::encode_function_data;
 use ethers::types::{Address, U256};
 use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
-use tracing::{info, instrument, warn};
+use tracing::{info, instrument};
 
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
@@ -114,16 +114,9 @@ pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
 ) -> eyre::Result<()> {
-    let config_groups: HashSet<_> = config.groups.keys().copied().collect();
-    let report_groups: HashSet<_> =
-        context.report.config.groups.keys().copied().collect();
-
     let mut groups = HashMap::new();
 
-    let groups_to_remove = report_groups.difference(&config_groups);
-    let groups_to_add_or_update = config_groups.clone();
-
-    for group_id in groups_to_add_or_update {
+    for group_id in config.groups.keys().copied() {
         let group_deployment = deploy_world_id_identity_manager_for_group(
             context.as_ref(),
             config.as_ref(),
@@ -133,11 +126,6 @@ pub async fn deploy(
 
         groups.insert(group_id, group_deployment);
     }
-
-    for group_id in groups_to_remove {
-        warn!("Removing groups is not implemented yet, group_id = {group_id}");
-    }
-
     context
         .dep_map
         .set(WorldIDIdentityManagersDeployment { groups })
