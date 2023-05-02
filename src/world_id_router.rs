@@ -18,13 +18,13 @@ use crate::{Config, DeploymentContext};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {
-    pub impl_deployment: ForgeOutput,
+    pub impl_v1_deployment: ForgeOutput,
     pub proxy_deployment: ForgeOutput,
     pub entries: HashMap<GroupId, Address>,
 }
 
 #[instrument(skip_all)]
-async fn deploy_world_id_router(
+async fn deploy_world_id_router_v1(
     context: &DeploymentContext,
     first_group_address: Address,
 ) -> eyre::Result<WorldIdRouterDeployment> {
@@ -35,7 +35,7 @@ async fn deploy_world_id_router(
     let contract_spec = ContractSpec::name("WorldIDRouter");
     let impl_spec = ContractSpec::name("WorldIDRouterImplV1");
 
-    let impl_deployment = ForgeCreate::new(impl_spec.clone())
+    let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
         .with_cwd("./world-id-contracts")
         .with_private_key(context.args.private_key.to_string())
         .with_rpc_url(context.args.rpc_url.to_string())
@@ -57,13 +57,13 @@ async fn deploy_world_id_router(
         .with_private_key(context.args.private_key.to_string())
         .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
-        .with_constructor_arg(format!("{:?}", impl_deployment.deployed_to))
+        .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)
         .run()
         .await?;
 
     Ok(WorldIdRouterDeployment {
-        impl_deployment,
+        impl_v1_deployment,
         proxy_deployment,
         entries: maplit::hashmap! {
             GroupId(0) => first_group_address
@@ -146,7 +146,7 @@ pub async fn deploy(
         .get(&GroupId(0))
         .context("Missing group 0")?;
 
-    let mut world_id_router_deployment = deploy_world_id_router(
+    let mut world_id_router_deployment = deploy_world_id_router_v1(
         context.as_ref(),
         first_group.proxy_deployment.deployed_to,
     )

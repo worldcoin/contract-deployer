@@ -22,12 +22,12 @@ pub struct WorldIDIdentityManagersDeployment {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldIdIdentityManagerDeployment {
-    pub impl_deployment: ForgeOutput,
+    pub impl_v1_deployment: ForgeOutput,
     pub proxy_deployment: ForgeOutput,
 }
 
 #[instrument(skip(context, config))]
-async fn deploy_world_id_identity_manager_for_group(
+async fn deploy_world_id_identity_manager_v1_for_group(
     context: &DeploymentContext,
     config: &Config,
     group_id: GroupId,
@@ -35,7 +35,6 @@ async fn deploy_world_id_identity_manager_for_group(
     if let Some(deployment) =
         context.report.identity_managers.groups.get(&group_id)
     {
-        // TODO: Upgradeability
         info!("Existing world id identity manager deployment found for group {:?}. Skipping.", group_id);
         return Ok(deployment.clone());
     }
@@ -48,7 +47,7 @@ async fn deploy_world_id_identity_manager_for_group(
     let identity_manager_spec = ContractSpec::name("WorldIDIdentityManager");
     let impl_spec = ContractSpec::name("WorldIDIdentityManagerImplV1");
 
-    let impl_deployment = ForgeCreate::new(impl_spec.clone())
+    let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
         .with_cwd("./world-id-contracts")
         .with_private_key(context.args.private_key.to_string())
         .with_rpc_url(context.args.rpc_url.to_string())
@@ -99,13 +98,13 @@ async fn deploy_world_id_identity_manager_for_group(
         .with_private_key(context.args.private_key.to_string())
         .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
-        .with_constructor_arg(format!("{:?}", impl_deployment.deployed_to))
+        .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)
         .run()
         .await?;
 
     Ok(WorldIdIdentityManagerDeployment {
-        impl_deployment,
+        impl_v1_deployment,
         proxy_deployment,
     })
 }
@@ -117,7 +116,7 @@ pub async fn deploy(
     let mut groups = HashMap::new();
 
     for group_id in config.groups.keys().copied() {
-        let group_deployment = deploy_world_id_identity_manager_for_group(
+        let group_deployment = deploy_world_id_identity_manager_v1_for_group(
             context.as_ref(),
             config.as_ref(),
             group_id,
