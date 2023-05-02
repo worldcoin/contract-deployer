@@ -2,14 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use ethers::prelude::encode_function_data;
-use ethers::providers::Middleware;
-use ethers::types::transaction::eip2718::TypedTransaction;
-use ethers::types::{Address, Eip1559TransactionRequest};
-use eyre::{bail, Context as _, ContextCompat};
+use ethers::types::Address;
+use eyre::{Context as _, ContextCompat};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::common_keys::RpcSigner;
+use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
@@ -86,36 +85,18 @@ async fn update_group_route(
         .run()
         .await?;
 
-    let update_group_route_func = impl_abi.function("updateGroup")?;
-    let call_data = encode_function_data(
-        update_group_route_func,
-        (group_id.0 as u64, new_target_address),
-    )?;
+    let signer = context.dep_map.get::<RpcSigner>().await;
 
-    let signer = context.dep_map.get::<RpcSigner>().await.0.clone();
+    let tx = TransactionBuilder::default()
+        .signer(signer.clone())
+        .abi(impl_abi.clone())
+        .function_name("updateGroup")
+        .args((group_id.0 as u64, new_target_address))
+        .to(world_id_router_address)
+        .context(context)
+        .build()?;
 
-    let mut tx = TypedTransaction::Eip1559(
-        Eip1559TransactionRequest::new()
-            .to(world_id_router_address)
-            .data(call_data)
-            .nonce(context.next_nonce()),
-    );
-
-    signer.fill_transaction(&mut tx, None).await?;
-
-    let tx = signer
-        .send_transaction(tx, None)
-        .await
-        .context("Send transaction")?;
-
-    let tx = tx
-        .await
-        .context("Awaiting receipt")?
-        .context("Failed to execute")?;
-
-    if tx.status != Some(1.into()) {
-        bail!("Failed!");
-    }
+    tx.send().await?;
 
     Ok(())
 }
@@ -134,36 +115,18 @@ async fn add_group_route(
         .run()
         .await?;
 
-    let update_group_route_func = impl_abi.function("addGroup")?;
-    let call_data = encode_function_data(
-        update_group_route_func,
-        (group_id.0 as u64, new_target_address),
-    )?;
+    let signer = context.dep_map.get::<RpcSigner>().await;
 
-    let signer = context.dep_map.get::<RpcSigner>().await.0.clone();
+    let tx = TransactionBuilder::default()
+        .signer(signer.clone())
+        .abi(impl_abi.clone())
+        .function_name("addGroup")
+        .args((group_id.0 as u64, new_target_address))
+        .to(world_id_router_address)
+        .context(context)
+        .build()?;
 
-    let mut tx = TypedTransaction::Eip1559(
-        Eip1559TransactionRequest::new()
-            .to(world_id_router_address)
-            .data(call_data)
-            .nonce(context.next_nonce()),
-    );
-
-    signer.fill_transaction(&mut tx, None).await?;
-
-    let tx = signer
-        .send_transaction(tx, None)
-        .await
-        .context("Send transaction")?;
-
-    let tx = tx
-        .await
-        .context("Awaiting receipt")?
-        .context("Failed to execute")?;
-
-    if tx.status != Some(1.into()) {
-        bail!("Failed!");
-    }
+    tx.send().await?;
 
     Ok(())
 }

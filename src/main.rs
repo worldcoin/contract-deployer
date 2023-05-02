@@ -21,6 +21,7 @@ use tracing_subscriber::{EnvFilter, Layer};
 
 pub mod common_keys;
 pub mod dependency_map;
+pub mod ethers_utils;
 pub mod forge_utils;
 pub mod serde_utils;
 pub mod utils;
@@ -149,10 +150,10 @@ async fn start() -> eyre::Result<()> {
 
     spawn_step!(insertion_verifier::deploy);
     spawn_step!(lookup_tables::deploy);
-    spawn_step!(assemble_report::assemble_report);
     spawn_step!(semaphore_verifier::deploy);
     spawn_step!(identity_manager::deploy);
     spawn_step!(world_id_router::deploy);
+    spawn_step!(assemble_report::assemble_report);
 
     while let Some(task_finished) = tasks.next().await {
         task_finished??;

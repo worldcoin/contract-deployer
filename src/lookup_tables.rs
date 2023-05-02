@@ -1,15 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use ethers::prelude::Contract;
-use ethers::providers::Middleware;
-use ethers::types::transaction::eip2718::TypedTransaction;
-use ethers::types::{Address, Eip1559TransactionRequest};
-use eyre::{bail, Context as _, ContextCompat};
+use ethers::types::Address;
+use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 use crate::common_keys::RpcSigner;
+use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
@@ -117,42 +115,18 @@ async fn associate_group_batch_size_verifier(
         .get(&(tree_depth, batch_size))
         .with_context(|| format!("Failed to get verifier for batch size {batch_size} and tree_depth {tree_depth}"))?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await.0.clone();
+    let signer = context.dep_map.get::<RpcSigner>().await;
 
-    let insert_lookup =
-        Contract::new(lookup_table_address, verifier_abi, signer.clone());
-
-    let update_verifier = insert_lookup.encode(
-        "updateVerifier",
-        (batch_size.0 as u64, verifier.deployment.deployed_to),
-    )?;
-
-    let mut tx = TypedTransaction::Eip1559(
-        Eip1559TransactionRequest::new()
-            .from(signer.address())
-            .to(lookup_table_address)
-            .data(update_verifier)
-            .nonce(context.next_nonce()),
-    );
-
-    info!("Filling tx!");
-    signer.fill_transaction(&mut tx, None).await?;
-
-    info!("Sending tx!");
-    let tx = signer
-        .send_transaction(tx, None)
-        .await
-        .context("Send transaction")?;
-
-    info!("Waitig for receipt!");
-    let tx = tx
-        .await
-        .context("Awaiting receipt")?
-        .context("Failed to execute")?;
-
-    if tx.status != Some(1.into()) {
-        bail!("Failed!");
-    }
+    TransactionBuilder::default()
+        .signer(signer)
+        .abi(verifier_abi.clone())
+        .function_name("updateVerifier")
+        .args((batch_size.0 as u64, verifier.deployment.deployed_to))
+        .to(lookup_table_address)
+        .context(context.as_ref())
+        .build()?
+        .send()
+        .await?;
 
     Ok(verifier.deployment.deployed_to)
 }
@@ -165,35 +139,18 @@ async fn remove_group_batch_size_verifier(
     group_id: GroupId,
     batch_size: BatchSize,
 ) -> eyre::Result<()> {
-    let signer = context.dep_map.get::<RpcSigner>().await.0.clone();
+    let signer = context.dep_map.get::<RpcSigner>().await;
 
-    let insert_lookup =
-        Contract::new(lookup_table_address, verifier_abi, signer.clone());
-
-    let update_verifier =
-        insert_lookup.encode("disableVerifier", batch_size.0 as u64)?;
-
-    let mut tx = TypedTransaction::Eip1559(
-        Eip1559TransactionRequest::new()
-            .from(signer.address())
-            .to(lookup_table_address)
-            .data(update_verifier)
-            .nonce(context.next_nonce()),
-    );
-
-    signer.fill_transaction(&mut tx, None).await?;
-
-    let tx = signer
-        .send_transaction(tx, None)
-        .await
-        .context("Send transaction")?
-        .await
-        .context("Awaiting receipt")?
-        .context("Failed to execute")?;
-
-    if tx.status != Some(1.into()) {
-        bail!("Failed!");
-    }
+    TransactionBuilder::default()
+        .signer(signer)
+        .abi(verifier_abi.clone())
+        .function_name("disableVerifier")
+        .args(batch_size.0 as u64)
+        .to(lookup_table_address)
+        .context(context.as_ref())
+        .build()?
+        .send()
+        .await?;
 
     Ok(())
 }
