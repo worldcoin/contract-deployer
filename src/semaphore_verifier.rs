@@ -68,7 +68,7 @@ async fn deploy_semaphore_verifier(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     _config: Arc<Config>,
-) -> eyre::Result<()> {
+) -> eyre::Result<SemaphoreVerifierDeployment> {
     let pairing_deployment =
         deploy_semaphore_pairing_library(context.as_ref()).await?;
 
@@ -77,13 +77,8 @@ pub async fn deploy(
     let verifier_deployment =
         deploy_semaphore_verifier(context.as_ref(), pairing_address).await?;
 
-    context
-        .dep_map
-        .set(SemaphoreVerifierDeployment {
-            verifier_deployment,
-            pairing_deployment,
-        })
-        .await;
-
-    Ok(())
+    Ok(SemaphoreVerifierDeployment {
+        verifier_deployment,
+        pairing_deployment,
+    })
 }

@@ -31,6 +31,8 @@ async fn deploy_world_id_identity_manager_v1_for_group(
     context: &DeploymentContext,
     config: &Config,
     group_id: GroupId,
+    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
+    lookup_tables: &LookupTables,
 ) -> eyre::Result<WorldIdIdentityManagerDeployment> {
     if let Some(deployment) =
         context.report.identity_managers.groups.get(&group_id)
@@ -64,10 +66,6 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         group_config.tree_depth,
         config.misc.initial_leaf_value,
     );
-
-    let semaphore_verifier_deployment =
-        context.dep_map.get::<SemaphoreVerifierDeployment>().await;
-    let lookup_tables = context.dep_map.get::<LookupTables>().await;
 
     let group_lookup_tables =
         lookup_tables.groups.get(&group_id).with_context(|| {
@@ -112,7 +110,9 @@ async fn deploy_world_id_identity_manager_v1_for_group(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-) -> eyre::Result<()> {
+    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
+    lookup_tables: &LookupTables,
+) -> eyre::Result<WorldIDIdentityManagersDeployment> {
     let mut groups = HashMap::new();
 
     for group_id in config.groups.keys().copied() {
@@ -120,15 +120,13 @@ pub async fn deploy(
             context.as_ref(),
             config.as_ref(),
             group_id,
+            semaphore_verifier_deployment,
+            lookup_tables,
         )
         .await?;
 
         groups.insert(group_id, group_deployment);
     }
-    context
-        .dep_map
-        .set(WorldIDIdentityManagersDeployment { groups })
-        .await;
 
-    Ok(())
+    Ok(WorldIDIdentityManagersDeployment { groups })
 }

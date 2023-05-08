@@ -11,8 +11,6 @@ use dependency_map::DependencyMap;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
 use report::Report;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -140,24 +138,41 @@ async fn start() -> eyre::Result<()> {
     let context = Arc::new(context);
     let config = Arc::new(config);
 
-    let mut tasks = FuturesUnordered::new();
+    let insertion_verifiers =
+        insertion_verifier::deploy(context.clone(), config.clone()).await?;
+    let lookup_tables = lookup_tables::deploy(
+        context.clone(),
+        config.clone(),
+        &insertion_verifiers,
+    )
+    .await?;
+    let semaphore_verifier =
+        semaphore_verifier::deploy(context.clone(), config.clone()).await?;
+    let identity_manager = identity_manager::deploy(
+        context.clone(),
+        config.clone(),
+        &semaphore_verifier,
+        &lookup_tables,
+    )
+    .await?;
 
-    macro_rules! spawn_step {
-        ($step:path) => {
-            tasks.push(tokio::spawn($step(context.clone(), config.clone())));
-        };
-    }
+    let world_id_router = world_id_router::deploy(
+        context.clone(),
+        config.clone(),
+        &identity_manager,
+    )
+    .await?;
 
-    spawn_step!(insertion_verifier::deploy);
-    spawn_step!(lookup_tables::deploy);
-    spawn_step!(semaphore_verifier::deploy);
-    spawn_step!(identity_manager::deploy);
-    spawn_step!(world_id_router::deploy);
-    spawn_step!(assemble_report::assemble_report);
-
-    while let Some(task_finished) = tasks.next().await {
-        task_finished??;
-    }
+    assemble_report::assemble_report(
+        context,
+        config,
+        &insertion_verifiers,
+        &lookup_tables,
+        &semaphore_verifier,
+        &identity_manager,
+        &world_id_router,
+    )
+    .await?;
 
     Ok(())
 }

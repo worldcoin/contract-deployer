@@ -67,14 +67,10 @@ async fn deploy_lookup_tables(
         return Ok((group_id, lookup_tables.clone()));
     }
 
-    let insert_lookup_deployment = deploy_lookup_table(context.as_ref());
-    let update_lookup_deployment = deploy_lookup_table(context.as_ref());
-
-    let (insert_lookup_deployment, update_lookup_deployment) =
-        futures::join!(insert_lookup_deployment, update_lookup_deployment);
-
-    let insert_lookup_deployment = insert_lookup_deployment?;
-    let update_lookup_deployment = update_lookup_deployment?;
+    let insert_lookup_deployment =
+        deploy_lookup_table(context.as_ref()).await?;
+    let update_lookup_deployment =
+        deploy_lookup_table(context.as_ref()).await?;
 
     let lookup_tables = GroupLookupTables {
         insert: InsertLookupTable {
@@ -97,7 +93,7 @@ async fn associate_group_batch_size_verifier(
     group_id: GroupId,
     tree_depth: TreeDepth,
     batch_size: BatchSize,
-    verifiers: Arc<InsertionVerifiers>,
+    verifiers: &InsertionVerifiers,
 ) -> eyre::Result<Address> {
     if let Some(group_verifiers) =
         context.report.lookup_tables.groups.get(&group_id)
@@ -159,20 +155,12 @@ async fn remove_group_batch_size_verifier(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-) -> eyre::Result<()> {
-    let mut lookup_table_deployments = vec![];
-
-    for group in config.groups.keys() {
-        lookup_table_deployments
-            .push(tokio::spawn(deploy_lookup_tables(context.clone(), *group)));
-    }
-
-    let lookup_table_deployments =
-        futures::future::try_join_all(lookup_table_deployments).await?;
-
+    verifiers: &InsertionVerifiers,
+) -> eyre::Result<LookupTables> {
     let mut by_group = HashMap::new();
-    for result in lookup_table_deployments {
-        let (group, lookup_tables) = result?;
+    for group in config.groups.keys() {
+        let (group, lookup_tables) =
+            deploy_lookup_tables(context.clone(), *group).await?;
         by_group.insert(group, lookup_tables);
     }
 
@@ -181,9 +169,6 @@ pub async fn deploy(
             .with_cwd("./world-id-contracts")
             .run()
             .await?;
-
-    info!("Waiting for insertion verifiers to deploy...");
-    let verifiers = context.dep_map.get::<InsertionVerifiers>().await;
 
     // New or existing verifiers
     for (group_id, group_config) in &config.groups {
@@ -217,7 +202,7 @@ pub async fn deploy(
                 group_id,
                 tree_depth,
                 batch_size,
-                verifiers.clone(),
+                verifiers,
             )
             .await?;
 
@@ -250,7 +235,5 @@ pub async fn deploy(
         }
     }
 
-    context.dep_map.set(LookupTables { groups: by_group }).await;
-
-    Ok(())
+    Ok(LookupTables { groups: by_group })
 }

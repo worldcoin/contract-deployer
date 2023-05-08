@@ -135,12 +135,8 @@ async fn add_group_route(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-) -> eyre::Result<()> {
-    let identity_managers = context
-        .dep_map
-        .get::<WorldIDIdentityManagersDeployment>()
-        .await;
-
+    identity_managers: &WorldIDIdentityManagersDeployment,
+) -> eyre::Result<WorldIdRouterDeployment> {
     let first_group = identity_managers
         .groups
         .get(&GroupId(0))
@@ -194,7 +190,5 @@ pub async fn deploy(
         }
     }
 
-    context.dep_map.set(world_id_router_deployment).await;
-
-    Ok(())
+    Ok(world_id_router_deployment)
 }

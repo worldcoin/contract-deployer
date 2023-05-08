@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
 use tracing::{info, instrument};
 
 use crate::config::Config;
@@ -17,14 +16,14 @@ const MTB_BIN: &str = "mtb";
 const KEYS_DIR: &str = "keys";
 const VERIFIER_CONTRACTS_DIR: &str = "verifier_contracts";
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct InsertionVerifier {
-    pub deployment: ForgeOutput,
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct InsertionVerifiers {
     pub verifiers: HashMap<(TreeDepth, BatchSize), InsertionVerifier>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct InsertionVerifier {
+    pub deployment: ForgeOutput,
 }
 
 #[instrument(skip_all)]
@@ -217,7 +216,7 @@ pub async fn deploy_verifier_contract(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-) -> eyre::Result<()> {
+) -> eyre::Result<InsertionVerifiers> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
 
     download_semaphore_mtb_binary(context.as_ref(), config.as_ref()).await?;
@@ -228,55 +227,39 @@ pub async fn deploy(
     tokio::fs::create_dir_all(&verifier_contracts_dir).await?;
     tokio::fs::create_dir_all(&keys_dir).await?;
 
-    let mut deployment_tasks: Vec<JoinHandle<eyre::Result<_>>> = vec![];
+    let mut verifiers = HashMap::new();
     for (tree_depth, batch_size) in config.unique_tree_depths_and_batch_sizes()
     {
         let mtb_bin_path = mtb_bin_path.clone();
         let keys_dir = keys_dir.clone();
         let verifier_contracts_dir = verifier_contracts_dir.clone();
 
-        // We don't parallelize on generating keys as it's a process that will likely consume 100% of the CPU
-        // so we'd see little benefit
         let keys_file =
             generate_keys(&mtb_bin_path, &keys_dir, tree_depth, batch_size)
                 .await?;
 
         let context = context.clone();
 
-        // but we can parallelize verifier contract generation and deployment
-        deployment_tasks.push(tokio::spawn(async move {
-            let verifier_contract_path = generate_verifier_contract(
-                mtb_bin_path,
-                keys_file,
-                verifier_contracts_dir,
-                tree_depth,
-                batch_size,
-            )
-            .await?;
+        let verifier_contract_path = generate_verifier_contract(
+            mtb_bin_path,
+            keys_file,
+            verifier_contracts_dir,
+            tree_depth,
+            batch_size,
+        )
+        .await?;
 
-            let deployment = deploy_verifier_contract(
-                context.as_ref(),
-                verifier_contract_path,
-                tree_depth,
-                batch_size,
-            )
-            .await?;
+        let deployment = deploy_verifier_contract(
+            context.as_ref(),
+            verifier_contract_path,
+            tree_depth,
+            batch_size,
+        )
+        .await?;
 
-            let key = (tree_depth, batch_size);
-
-            Ok((key, deployment))
-        }));
-    }
-
-    let deployments = futures::future::try_join_all(deployment_tasks).await?;
-
-    let mut verifiers = HashMap::new();
-    for deployment in deployments {
-        let (key, deployment) = deployment?;
+        let key = (tree_depth, batch_size);
         verifiers.insert(key, InsertionVerifier { deployment });
     }
 
-    context.dep_map.set(InsertionVerifiers { verifiers }).await;
-
-    Ok(())
+    Ok(InsertionVerifiers { verifiers })
 }
