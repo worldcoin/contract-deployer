@@ -1,27 +1,35 @@
+use std::sync::Arc;
+
 use ethers::types::Address;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
 use crate::{Config, DeploymentContext};
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SemaphoreVerifierDeployment {
-    pub deploy_info: ForgeOutput,
+    pub verifier_deployment: ForgeOutput,
+    pub pairing_deployment: ForgeOutput,
 }
 
 #[instrument(skip_all)]
 async fn deploy_semaphore_pairing_library(
     context: &DeploymentContext,
-    config: &Config,
 ) -> eyre::Result<ForgeOutput> {
+    if let Some(previous_deployment) =
+        context.report.semaphore_verifier.as_ref()
+    {
+        return Ok(previous_deployment.pairing_deployment.clone());
+    }
+
     let contract_spec = ContractSpec::name("Pairing");
-    let private_key_string =
-        hex::encode(config.private_key.to_bytes().as_slice());
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(private_key_string)
+        .with_private_key(context.args.private_key.to_string())
         .with_override_nonce(context.next_nonce())
-        .with_rpc_url(config.rpc_url.clone())
+        .with_rpc_url(context.args.rpc_url.to_string())
         .run()
         .await?;
 
@@ -31,18 +39,20 @@ async fn deploy_semaphore_pairing_library(
 #[instrument(skip_all)]
 async fn deploy_semaphore_verifier(
     context: &DeploymentContext,
-    config: &Config,
     pairing_address: Address,
-) -> eyre::Result<()> {
-    let contract_spec = ContractSpec::name("SemaphoreVerifier");
+) -> eyre::Result<ForgeOutput> {
+    if let Some(previous_deployment) =
+        context.report.semaphore_verifier.as_ref()
+    {
+        return Ok(previous_deployment.verifier_deployment.clone());
+    }
 
-    let private_key_string =
-        hex::encode(config.private_key.to_bytes().as_slice());
+    let contract_spec = ContractSpec::name("SemaphoreVerifier");
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(private_key_string)
-        .with_rpc_url(config.rpc_url.clone())
+        .with_private_key(context.args.private_key.to_string())
+        .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .with_external_dep(ExternalDep::path_name_address(
             "./lib/semaphore/packages/contracts/contracts/base/Pairing.sol",
@@ -52,25 +62,23 @@ async fn deploy_semaphore_verifier(
         .run()
         .await?;
 
-    context
-        .dep_map
-        .set(SemaphoreVerifierDeployment {
-            deploy_info: output,
-        })
-        .await;
-
-    Ok(())
+    Ok(output)
 }
 
 pub async fn deploy(
-    context: &DeploymentContext,
-    config: &Config,
-) -> eyre::Result<()> {
-    let output = deploy_semaphore_pairing_library(context, config).await?;
+    context: Arc<DeploymentContext>,
+    _config: Arc<Config>,
+) -> eyre::Result<SemaphoreVerifierDeployment> {
+    let pairing_deployment =
+        deploy_semaphore_pairing_library(context.as_ref()).await?;
 
-    let pairing_address = output.deployed_to;
+    let pairing_address = pairing_deployment.deployed_to;
 
-    deploy_semaphore_verifier(context, config, pairing_address).await?;
+    let verifier_deployment =
+        deploy_semaphore_verifier(context.as_ref(), pairing_address).await?;
 
-    Ok(())
+    Ok(SemaphoreVerifierDeployment {
+        verifier_deployment,
+        pairing_deployment,
+    })
 }

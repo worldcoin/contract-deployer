@@ -20,11 +20,10 @@ impl DependencyMap {
         Self::default()
     }
 
-    pub async fn set<T: 'static + Send + Sync>(&self, value: T) {
-        let mut map = self.map.lock().await;
-
-        let key = TypeId::of::<T>();
-
+    fn get_or_create_cell(
+        key: TypeId,
+        map: &mut HashMap<TypeId, NotifyCell>,
+    ) -> &mut NotifyCell {
         let entry = map.entry(key).or_insert_with(|| {
             let notify = Arc::new(Notify::new());
             NotifyCell {
@@ -33,8 +32,18 @@ impl DependencyMap {
             }
         });
 
+        entry
+    }
+
+    pub async fn set<T: 'static + Send + Sync>(&self, value: T) {
+        let key = TypeId::of::<T>();
+
+        let mut map = self.map.lock().await;
+
+        let entry = Self::get_or_create_cell(key, &mut map);
+
         entry.value = Some(Arc::new(value));
-        entry.notify.notify_one();
+        entry.notify.notify_waiters();
     }
 
     pub async fn get<T: 'static + Send + Sync>(&self) -> Arc<T> {
@@ -42,13 +51,7 @@ impl DependencyMap {
 
         let mut map = self.map.lock().await;
 
-        let entry = map.entry(key).or_insert_with(|| {
-            let notify = Arc::new(Notify::new());
-            NotifyCell {
-                notify,
-                value: None,
-            }
-        });
+        let entry = Self::get_or_create_cell(key, &mut map);
 
         if let Some(value) = entry.value.as_ref() {
             return value.clone().downcast().unwrap();
@@ -56,10 +59,14 @@ impl DependencyMap {
 
         let notify = entry.notify.clone();
 
+        // We must acqurie a Notified future before dropping the lock
+        // to avoid race conditions
+        let notified = notify.notified();
+
         // Drop the lock and wait for a notification
         drop(map);
 
-        notify.notified().await;
+        notified.await;
 
         let map = self.map.lock().await;
         map.get(&key)

@@ -161,7 +161,7 @@ impl ForgeCreate {
         self
     }
 
-    #[instrument(skip_all)]
+    #[instrument(name = "forge_create", skip_all)]
     pub async fn run(&self) -> eyre::Result<ForgeOutput> {
         let mut cmd = tokio::process::Command::new("forge");
         cmd.arg("create");
@@ -260,6 +260,7 @@ impl ForgeInspectAbi {
         self
     }
 
+    #[instrument(name = "forge_inspect_abi", skip_all)]
     pub async fn run(&self) -> eyre::Result<ethers::abi::Abi> {
         let mut cmd = tokio::process::Command::new("forge");
 

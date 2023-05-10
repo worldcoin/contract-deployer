@@ -1,26 +1,37 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use eyre::ContextCompat;
-use tracing::instrument;
+use serde::{Deserialize, Serialize};
+use tracing::{info, instrument};
 
+use crate::config::Config;
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
-use crate::{Config, DeploymentContext};
+use crate::types::{BatchSize, TreeDepth};
+use crate::DeploymentContext;
 
 const MTB_BIN: &str = "mtb";
-const KEYS: &str = "keys";
-const VERIFIER_CONTRACT: &str = "verifier.sol";
+const KEYS_DIR: &str = "keys";
+const VERIFIER_CONTRACTS_DIR: &str = "verifier_contracts";
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct InsertionVerifiers {
+    pub verifiers: HashMap<(TreeDepth, BatchSize), InsertionVerifier>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct InsertionVerifier {
     pub deployment: ForgeOutput,
 }
 
-#[instrument(skip(mtb_bin))]
+#[instrument(skip_all)]
 pub async fn download_semaphore_mtb_binary(
-    mtb_bin: impl AsRef<Path>,
+    context: &DeploymentContext,
+    _config: &Config,
 ) -> eyre::Result<()> {
-    let mtb_bin = mtb_bin.as_ref();
+    let mtb_bin = context.cache_path(MTB_BIN);
 
     if mtb_bin.exists() {
         return Ok(());
@@ -64,34 +75,40 @@ pub async fn download_semaphore_mtb_binary(
 
     let bytes = response.bytes().await?;
 
-    tokio::fs::write(mtb_bin, bytes).await?;
+    tokio::fs::write(&mtb_bin, bytes).await?;
 
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
 
-        let meta = tokio::fs::metadata(mtb_bin).await?;
+        let meta = tokio::fs::metadata(&mtb_bin).await?;
 
         let mut permissions = meta.permissions();
         permissions.set_mode(0o755);
 
-        tokio::fs::set_permissions(mtb_bin, permissions).await?;
+        tokio::fs::set_permissions(&mtb_bin, permissions).await?;
     }
 
     Ok(())
 }
 
-#[instrument(skip(mtb_binary, keys_file))]
+fn keys_file_format(tree_depth: TreeDepth, batch_size: BatchSize) -> PathBuf {
+    PathBuf::from(format!("keys_{tree_depth}_{batch_size}"))
+}
+
+#[instrument(skip(mtb_binary, keys_dir))]
 pub async fn generate_keys(
     mtb_binary: impl AsRef<OsStr>,
-    keys_file: impl AsRef<Path>,
-    tree_depth: usize,
-    batch_size: usize,
-) -> eyre::Result<()> {
-    let keys_file = keys_file.as_ref();
+    keys_dir: impl AsRef<Path>,
+    tree_depth: TreeDepth,
+    batch_size: BatchSize,
+) -> eyre::Result<PathBuf> {
+    let keys_file = keys_dir
+        .as_ref()
+        .join(keys_file_format(tree_depth, batch_size));
 
     if keys_file.exists() {
-        return Ok(());
+        return Ok(keys_file);
     }
 
     let output = tokio::process::Command::new(mtb_binary)
@@ -101,7 +118,7 @@ pub async fn generate_keys(
         .arg("--batch-size")
         .arg(batch_size.to_string())
         .arg("--output")
-        .arg(keys_file)
+        .arg(&keys_file)
         .spawn()?
         .wait_with_output()
         .await?;
@@ -111,20 +128,25 @@ pub async fn generate_keys(
         eyre::bail!("Failed to generate verifier contract: {error}");
     }
 
-    Ok(())
+    Ok(keys_file)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(mtb_binary, keys_file, verifier_contracts_dir))]
 pub async fn generate_verifier_contract(
     mtb_binary: impl AsRef<OsStr>,
     keys_file: impl AsRef<Path>,
-    verifier_contract: impl AsRef<Path>,
-) -> eyre::Result<()> {
+    verifier_contracts_dir: impl AsRef<Path>,
+    tree_depth: TreeDepth,
+    batch_size: BatchSize,
+) -> eyre::Result<PathBuf> {
     let keys_file = keys_file.as_ref();
-    let verifier_contract = verifier_contract.as_ref();
+
+    let verifier_contract = verifier_contracts_dir
+        .as_ref()
+        .join(verifier_contract_filename(tree_depth, batch_size));
 
     if verifier_contract.exists() {
-        return Ok(());
+        return Ok(verifier_contract);
     }
 
     let output = tokio::process::Command::new(mtb_binary)
@@ -132,7 +154,7 @@ pub async fn generate_verifier_contract(
         .arg("--keys-file")
         .arg(keys_file)
         .arg("--output")
-        .arg(verifier_contract)
+        .arg(&verifier_contract)
         .spawn()?
         .wait_with_output()
         .await?;
@@ -142,18 +164,35 @@ pub async fn generate_verifier_contract(
         eyre::bail!("Failed to generate verifier contract: {error}");
     }
 
-    Ok(())
+    Ok(verifier_contract)
 }
 
-#[instrument(skip_all)]
+fn verifier_contract_filename(
+    tree_depth: TreeDepth,
+    batch_size: BatchSize,
+) -> PathBuf {
+    PathBuf::from(format!("verifier_{batch_size}_{tree_depth}.sol"))
+}
+
+#[instrument(skip(context, verifier_contract))]
 pub async fn deploy_verifier_contract(
     context: &DeploymentContext,
-    config: &Config,
     verifier_contract: impl AsRef<Path>,
+    tree_depth: TreeDepth,
+    batch_size: BatchSize,
 ) -> eyre::Result<ForgeOutput> {
-    let verifier_contract = verifier_contract.as_ref();
+    let verifier_contract = verifier_contract.as_ref().canonicalize()?;
 
-    let verifier_contract = verifier_contract.canonicalize()?;
+    if let Some(existing_deployment) = context
+        .report
+        .verifiers
+        .verifiers
+        .get(&(tree_depth, batch_size))
+    {
+        info!("Found previous verifier deployment for tree depth {tree_depth} and batch size {batch_size} at {:?}", existing_deployment.deployment.deployed_to);
+        return Ok(existing_deployment.deployment.clone());
+    }
+
     let verifier_contract_parent = verifier_contract
         .parent()
         .context("Missing verifier contract parent directory")?;
@@ -161,45 +200,66 @@ pub async fn deploy_verifier_contract(
     let contract_spec =
         ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
-    let private_key_string =
-        hex::encode(config.private_key.to_bytes().as_slice());
-
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
         .with_override_nonce(context.next_nonce())
-        .with_private_key(private_key_string)
-        .with_rpc_url(config.rpc_url.clone())
+        .with_private_key(context.args.private_key.to_string())
+        .with_rpc_url(context.args.rpc_url.to_string())
         .run()
         .await?;
 
     Ok(output)
 }
 
+#[instrument(name = "verifiers", skip_all)]
 pub async fn deploy(
-    context: &DeploymentContext,
-    config: &Config,
-) -> eyre::Result<()> {
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<InsertionVerifiers> {
     let mtb_bin_path = context.cache_dir.join(MTB_BIN);
-    let keys_file = context.cache_dir.join(KEYS);
-    let verifier_contract = context.cache_dir.join(VERIFIER_CONTRACT);
 
-    download_semaphore_mtb_binary(&mtb_bin_path).await?;
+    download_semaphore_mtb_binary(context.as_ref(), config.as_ref()).await?;
 
-    generate_keys(
-        &mtb_bin_path,
-        &keys_file,
-        config.tree_depth,
-        config.batch_size,
-    )
-    .await?;
-    generate_verifier_contract(&mtb_bin_path, &keys_file, &verifier_contract)
+    let verifier_contracts_dir = context.cache_path(VERIFIER_CONTRACTS_DIR);
+    let keys_dir = context.cache_path(KEYS_DIR);
+
+    tokio::fs::create_dir_all(&verifier_contracts_dir).await?;
+    tokio::fs::create_dir_all(&keys_dir).await?;
+
+    let mut verifiers = HashMap::new();
+    for (tree_depth, batch_size) in config.unique_tree_depths_and_batch_sizes()
+    {
+        let mtb_bin_path = mtb_bin_path.clone();
+        let keys_dir = keys_dir.clone();
+        let verifier_contracts_dir = verifier_contracts_dir.clone();
+
+        let keys_file =
+            generate_keys(&mtb_bin_path, &keys_dir, tree_depth, batch_size)
+                .await?;
+
+        let context = context.clone();
+
+        let verifier_contract_path = generate_verifier_contract(
+            mtb_bin_path,
+            keys_file,
+            verifier_contracts_dir,
+            tree_depth,
+            batch_size,
+        )
         .await?;
 
-    let deployment =
-        deploy_verifier_contract(context, config, &verifier_contract).await?;
+        let deployment = deploy_verifier_contract(
+            context.as_ref(),
+            verifier_contract_path,
+            tree_depth,
+            batch_size,
+        )
+        .await?;
 
-    context.dep_map.set(InsertionVerifier { deployment }).await;
+        let key = (tree_depth, batch_size);
+        verifiers.insert(key, InsertionVerifier { deployment });
+    }
 
-    Ok(())
+    Ok(InsertionVerifiers { verifiers })
 }
