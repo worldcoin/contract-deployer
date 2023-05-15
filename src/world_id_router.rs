@@ -37,7 +37,7 @@ async fn deploy_world_id_router_v1(
 
     let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
+        .with_private_key(context.args.private_key.clone())
         .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .run()
@@ -54,7 +54,7 @@ async fn deploy_world_id_router_v1(
 
     let proxy_deployment = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
+        .with_private_key(context.args.private_key.clone())
         .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))

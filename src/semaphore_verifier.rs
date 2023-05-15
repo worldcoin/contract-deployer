@@ -27,7 +27,7 @@ async fn deploy_semaphore_pairing_library(
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
+        .with_private_key(context.args.private_key.clone())
         .with_override_nonce(context.next_nonce())
         .with_rpc_url(context.args.rpc_url.to_string())
         .run()
@@ -51,7 +51,7 @@ async fn deploy_semaphore_verifier(
 
     let output = ForgeCreate::new(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
+        .with_private_key(context.args.private_key.clone())
         .with_rpc_url(context.args.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .with_external_dep(ExternalDep::path_name_address(

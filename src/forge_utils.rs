@@ -5,6 +5,8 @@ use ethers::types::{Address, H256};
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use crate::args::PrivateKey;
+
 #[derive(Debug, Clone)]
 pub struct ContractSpec {
     pub path: Option<PathBuf>,
@@ -76,7 +78,7 @@ pub struct ForgeCreate {
     contract_spec: ContractSpec,
     override_contract_source: Option<PathBuf>,
     verify: bool,
-    private_key: Option<String>,
+    private_key: Option<PrivateKey>,
     rpc_url: Option<String>,
     external_deps: Vec<ExternalDep>,
     override_nonce: Option<u64>,
@@ -141,7 +143,7 @@ impl ForgeCreate {
         self
     }
 
-    pub fn with_private_key(mut self, private_key: String) -> Self {
+    pub fn with_private_key(mut self, private_key: PrivateKey) -> Self {
         self.private_key = Some(private_key);
         self
     }
@@ -195,7 +197,7 @@ impl ForgeCreate {
 
         if let Some(private_key) = &self.private_key {
             cmd.arg("--private-key");
-            cmd.arg(private_key);
+            cmd.arg(format!("{private_key:#}"));
         }
 
         if let Some(rpc_url) = &self.rpc_url {

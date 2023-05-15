@@ -36,6 +36,15 @@ impl FromStr for PrivateKey {
 
 impl fmt::Display for PrivateKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.key.to_bytes()))
+        if f.alternate() {
+            write!(f, "{}", hex::encode(self.key.to_bytes()))
+        } else {
+            let encoded = hex::encode(self.key.to_bytes());
+
+            let first_4 = &encoded[0..4];
+            let last_4 = &encoded[encoded.len() - 4..];
+
+            write!(f, "{}...{}", first_4, last_4)
+        }
     }
 }

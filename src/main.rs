@@ -4,14 +4,16 @@ use std::sync::Arc;
 
 use args::DeploymentArgs;
 use assemble_report::REPORT_PATH;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use common_keys::RpcSigner;
 use config::Config;
 use dependency_map::DependencyMap;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
+use interactive::{run_interactive_session, InteractiveCmd};
 use report::Report;
+use tracing_error::ErrorLayer;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -35,6 +37,8 @@ mod semaphore_verifier;
 mod types;
 mod world_id_router;
 
+mod interactive;
+
 #[derive(Debug)]
 pub struct DeploymentContext {
     pub deployment_dir: PathBuf,
@@ -55,24 +59,16 @@ impl DeploymentContext {
     }
 }
 
-#[derive(Debug, Clone, Parser)]
-#[clap(rename_all = "kebab-case")]
-struct Cmd {
-    #[clap(short, long, env)]
+pub struct Cmd {
     pub config: PathBuf,
-
-    /// The name of the deployment
-    ///
-    /// Should be something meaningful like 'prod-2023-04-18'
-    #[clap(short, long, env)]
     pub deployment_name: String,
-
-    #[clap(flatten)]
     pub args: DeploymentArgs,
 }
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
+
     dotenv::dotenv().ok();
 
     let indicatif_layer = IndicatifLayer::new();
@@ -86,13 +82,23 @@ async fn main() -> eyre::Result<()> {
                 .with_filter(filter),
         )
         .with(indicatif_layer)
+        .with(ErrorLayer::default())
         .init();
 
-    start().await
+    match start().await {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            let report = eyre::ErrReport::from(err);
+            tracing::error!("{:?}", report);
+            std::process::exit(1)
+        }
+    }
 }
 
 async fn start() -> eyre::Result<()> {
-    let cmd = Cmd::parse();
+    let initial_args = InteractiveCmd::parse();
+    let args = run_interactive_session(initial_args).await?;
+    let cmd: Cmd = args.try_into()?;
 
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
