@@ -4,8 +4,9 @@ use ethers::types::Address;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SemaphoreVerifierDeployment {

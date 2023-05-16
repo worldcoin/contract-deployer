@@ -9,12 +9,13 @@ use tracing::instrument;
 
 use super::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::common_keys::RpcSigner;
+use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
 use crate::types::GroupId;
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {

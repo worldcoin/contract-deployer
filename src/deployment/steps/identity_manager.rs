@@ -9,11 +9,12 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
 use crate::types::GroupId;
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct WorldIDIdentityManagersDeployment {

@@ -6,8 +6,9 @@ use self::create_config::create_config_interactive;
 use crate::cli::Args;
 use crate::config::Config;
 use crate::deployment::steps::assemble_report::REPORT_PATH;
+use crate::deployment::Cmd;
 use crate::report::Report;
-use crate::{serde_utils, Cmd};
+use crate::serde_utils;
 
 mod create_config;
 

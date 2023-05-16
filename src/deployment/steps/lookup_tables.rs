@@ -8,12 +8,13 @@ use tracing::{info, instrument};
 
 use super::insertion_verifier::InsertionVerifiers;
 use crate::common_keys::RpcSigner;
+use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
 use crate::types::{BatchSize, GroupId, TreeDepth};
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LookupTables {

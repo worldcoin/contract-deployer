@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 use crate::config::Config;
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
 use crate::types::{BatchSize, TreeDepth};
-use crate::DeploymentContext;
 
 const MTB_BIN: &str = "mtb";
 const KEYS_DIR: &str = "keys";

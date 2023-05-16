@@ -8,8 +8,9 @@ use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
 use super::world_id_router::WorldIdRouterDeployment;
 use crate::config::Config;
+use crate::deployment::DeploymentContext;
 use crate::report::Report;
-use crate::{serde_utils, DeploymentContext};
+use crate::serde_utils;
 
 pub const REPORT_PATH: &str = "report.yml";
 
