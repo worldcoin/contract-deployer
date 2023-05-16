@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
-use args::PrivateKey;
-use clap::{CommandFactory, Parser};
+use clap::Parser;
+use cli::{Args, PrivateKey};
 use common_keys::RpcSigner;
 use config::Config;
 use dependency_map::DependencyMap;
@@ -11,7 +11,7 @@ use deployment::steps::assemble_report::REPORT_PATH;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
-use interactive::{run_interactive_session, InteractiveCmd};
+use interactive::run_interactive_session;
 use report::Report;
 use reqwest::Url;
 use tracing_error::ErrorLayer;
@@ -29,7 +29,7 @@ pub mod forge_utils;
 pub mod serde_utils;
 pub mod utils;
 
-mod args;
+mod cli;
 mod config;
 mod report;
 mod types;
@@ -83,7 +83,7 @@ impl Cmd {
 }
 
 async fn start() -> eyre::Result<()> {
-    let initial_args = InteractiveCmd::parse();
+    let initial_args = Args::parse();
     let cmd = run_interactive_session(initial_args).await?;
 
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;

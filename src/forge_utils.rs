@@ -5,7 +5,7 @@ use ethers::types::{Address, H256};
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
-use crate::args::PrivateKey;
+use crate::cli::PrivateKey;
 
 #[derive(Debug, Clone)]
 pub struct ContractSpec {

@@ -2,12 +2,8 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use clap::Parser;
-use eyre::ContextCompat;
-use reqwest::Url;
-
 use self::create_config::create_config_interactive;
-use crate::args::PrivateKey;
+use crate::cli::Args;
 use crate::config::Config;
 use crate::deployment::steps::assemble_report::REPORT_PATH;
 use crate::report::Report;
@@ -30,52 +26,7 @@ impl fmt::Display for MainMenu {
     }
 }
 
-#[derive(Debug, Clone, Parser)]
-#[clap(rename_all = "kebab-case")]
-pub struct InteractiveCmd {
-    /// Path to the deployment configuration file
-    #[clap(short, long, env)]
-    pub config: Option<PathBuf>,
-
-    /// Run in interactive mode
-    ///
-    /// NOTE: If not running in interactive mode ALL the values must be provided
-    #[clap(short, long)]
-    pub interactive: bool,
-
-    /// The name of the deployment
-    ///
-    /// Should be something meaningful like 'prod-2023-04-18'
-    #[clap(short, long, env)]
-    pub deployment_name: Option<String>,
-
-    /// Private key to use for the deployment
-    #[clap(short, long, env)]
-    pub private_key: Option<PrivateKey>,
-
-    /// The RPC Url to use for the deployment
-    #[clap(short, long, env)]
-    pub rpc_url: Option<Url>,
-}
-
-impl TryFrom<InteractiveCmd> for Cmd {
-    type Error = eyre::Error;
-
-    fn try_from(value: InteractiveCmd) -> Result<Self, Self::Error> {
-        Ok(Self {
-            config: value.config.context("Missing context")?,
-            deployment_name: value
-                .deployment_name
-                .context("Missing deployment name")?,
-            private_key: value.private_key.context("Missing private key")?,
-            rpc_url: value.rpc_url.context("Missing rpc url")?,
-        })
-    }
-}
-
-pub async fn run_interactive_session(
-    mut cmd: InteractiveCmd,
-) -> eyre::Result<Cmd> {
+pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
     let deployment_name = if let Some(name) = cmd.deployment_name.as_ref() {
         println!("Currently working on deployment: {}", name);
         name.clone()
@@ -171,7 +122,12 @@ pub async fn run_interactive_session(
         }
     }
 
-    Ok(cmd.try_into()?)
+    Ok(Cmd::new(
+        config_path,
+        deployment_name.clone(),
+        private_key,
+        rpc_url,
+    ))
 }
 
 fn print_deployment_info(config: &Config) {
