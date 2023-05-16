@@ -1,13 +1,18 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use clap::Parser;
+use ethers::types::H256;
 use eyre::ContextCompat;
 use reqwest::Url;
 
 use crate::args::{DeploymentArgs, PrivateKey};
 use crate::assemble_report::REPORT_PATH;
-use crate::config::Config;
+use crate::config::{Config, GroupConfig, MiscConfig};
+use crate::report::Report;
+use crate::types::{BatchSize, GroupId, TreeDepth};
 use crate::{serde_utils, Cmd};
 
 #[derive(Clone, Debug)]
@@ -75,54 +80,56 @@ impl TryFrom<InteractiveCmd> for Cmd {
 pub async fn run_interactive_session(
     mut cmd: InteractiveCmd,
 ) -> eyre::Result<Cmd> {
-    if let Some(name) = cmd.deployment_name.as_ref() {
+    let deployment_name = if let Some(name) = cmd.deployment_name.as_ref() {
         println!("Currently working on deployment: {}", name);
+        name.clone()
     } else {
-        cmd.deployment_name =
-            Some(inquire::Text::new("Deployment name:").prompt()?);
-    }
+        inquire::Text::new("Deployment name:").prompt()?
+    };
 
-    if let Some(private_key) = cmd.private_key.as_ref() {
+    let private_key = if let Some(private_key) = cmd.private_key.as_ref() {
         println!("Using private key: {private_key}");
+        private_key.clone()
     } else {
         let private_key = inquire::Text::new("Private key:").prompt()?;
-        cmd.private_key = Some(private_key.parse()?);
-    }
+        private_key.parse()?
+    };
 
-    if let Some(rpc_url) = cmd.rpc_url.as_ref() {
+    let rpc_url = if let Some(rpc_url) = cmd.rpc_url.as_ref() {
         println!("Using RPC: {rpc_url}");
+        rpc_url.clone()
     } else {
         let rpc_url = inquire::Text::new("Rpc Url:").prompt()?;
-        cmd.rpc_url = Some(rpc_url.parse()?);
-    }
+        rpc_url.parse()?
+    };
 
-    if let Some(config) = cmd.config.as_ref() {
+    let config_path = if let Some(config) = cmd.config.as_ref() {
         println!("Using config at: {}", config.display());
+        config.clone()
     } else {
-        let config_path = inquire::Text::new("Path to config (leave empty to create):").prompt()?;
-        cmd.config = Some(config_path.parse()?);
-    }
+        let config_path =
+            inquire::Text::new("Path to config (leave empty to create):")
+                .prompt()?;
+
+        if config_path.trim().is_empty() {
+            create_config_interactive().await?
+        } else {
+            config_path.parse()?
+        }
+    };
 
     loop {
-        let config: Config = serde_utils::read_deserialize(
-            &cmd.config.as_ref().context("Missing config")?,
-        )
-        .await?;
+        let config: Config =
+            serde_utils::read_deserialize(&config_path).await?;
 
-        let deployment_name = cmd
-            .deployment_name
-            .as_ref()
-            .context("Missing deployment name")?;
-
-        let deployment_dir = PathBuf::from(deployment_name);
-
-        let cache_dir = deployment_dir.join(".cache");
+        let deployment_dir = PathBuf::from(&deployment_name);
 
         let report_path = deployment_dir.join(REPORT_PATH);
 
-        if report_path.exists() {
-        } else {
-            print_deployment_info(&deployment_name, &config);
+        if !report_path.exists() {
+            println!("Deployment name: {deployment_name}");
+            print_deployment_info(&config);
+
             let proceed = inquire::Confirm::new(
                 "No report found, do you want to proceed with this deployment?",
             )
@@ -132,8 +139,19 @@ pub async fn run_interactive_session(
                 std::process::exit(0);
             }
 
-            return Ok(cmd.try_into()?);
+            return Ok(Cmd::new(
+                config_path,
+                deployment_name.clone(),
+                private_key,
+                rpc_url,
+            ));
         }
+
+        let report: Report =
+            serde_utils::read_deserialize(&report_path).await?;
+
+        println!("Deployment name: {deployment_name}");
+        print_deployment_diff(&config, &report);
 
         if let Some(name) = cmd.deployment_name.as_ref() {
             println!("Currently working on deployment: {}", name);
@@ -160,8 +178,7 @@ pub async fn run_interactive_session(
     Ok(cmd.try_into()?)
 }
 
-fn print_deployment_info(name: &str, config: &Config) {
-    println!("Deployment: {name}");
+fn print_deployment_info(config: &Config) {
     println!("Groups:");
     for (group_id, group) in &config.groups {
         println!("Group #{}", group_id);
@@ -169,6 +186,195 @@ fn print_deployment_info(name: &str, config: &Config) {
         println!("  Batch sizes: ");
         for batch_size in &group.batch_sizes {
             println!("    {}", batch_size);
+        }
+    }
+}
+
+fn print_deployment_diff(config: &Config, report: &Report) {
+    println!("Groups:");
+    if let Some(world_id_router) = report.world_id_router.as_ref() {
+        println!(
+            "Router address: {:?}",
+            world_id_router.proxy_deployment.deployed_to
+        );
+    }
+
+    for (group_id, group) in &config.groups {
+        println!("  Group #{}", group_id);
+        if let Some(group_report) =
+            report.identity_managers.groups.get(group_id)
+        {
+            println!(
+                "    Identity manager: {:?}",
+                group_report.proxy_deployment.deployed_to
+            );
+        }
+
+        println!("    Tree depth: {}", group.tree_depth);
+
+        if let Some(lookup_table_group) =
+            report.lookup_tables.groups.get(group_id)
+        {
+            let lookup_table_address =
+                lookup_table_group.insert.deployment.deployed_to;
+            println!("    Insert lookup table: {:?}", lookup_table_address);
+
+            for batch_size in &group.batch_sizes {
+                if let Some(verifier) =
+                    lookup_table_group.insert.entries.get(batch_size)
+                {
+                    println!("      Batch size {}: {:?}", batch_size, verifier);
+                } else {
+                    println!("      Batch size {}: (undeployed)", batch_size);
+                }
+            }
+        }
+    }
+}
+
+enum CreateConfigMenu {
+    AddGroup,
+    RemoveGroup,
+    Proceed,
+}
+
+impl fmt::Display for CreateConfigMenu {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CreateConfigMenu::AddGroup => write!(f, "Add group"),
+            CreateConfigMenu::RemoveGroup => write!(f, "Remove group"),
+            CreateConfigMenu::Proceed => write!(f, "Proceed"),
+        }
+    }
+}
+
+async fn create_config_interactive() -> eyre::Result<PathBuf> {
+    let config_path = loop {
+        let filename = inquire::Text::new("Config filename:").prompt()?;
+
+        let config_path = PathBuf::from(filename);
+
+        if config_path.exists() {
+            let overwrite =
+                inquire::Confirm::new("Overwrite existing file?").prompt()?;
+
+            if !overwrite {
+                continue;
+            }
+        }
+
+        break config_path;
+    };
+
+    let mut config = Config {
+        groups: HashMap::default(),
+        misc: MiscConfig {
+            initial_leaf_value: H256::zero(),
+        },
+    };
+
+    loop {
+        print_deployment_info(&config);
+
+        let option = inquire::Select::new(
+            "Menu (Esc to quit):",
+            vec![
+                CreateConfigMenu::AddGroup,
+                CreateConfigMenu::RemoveGroup,
+                CreateConfigMenu::Proceed,
+            ],
+        )
+        .prompt_skippable()?;
+
+        match option {
+            Some(CreateConfigMenu::AddGroup) => {
+                let group_id: GroupId = prompt_text_handle_errors("Group id:")?;
+
+                let tree_depth: TreeDepth =
+                    prompt_text_handle_errors("Tree depth:")?;
+
+                let mut batch_sizes = vec![];
+
+                while let Some(batch_size) =
+                    prompt_text_skippable_handle_errors(
+                        "Enter new batch size (Esc to finish):",
+                    )?
+                {
+                    batch_sizes.push(batch_size);
+                }
+
+                let group = GroupConfig {
+                    tree_depth,
+                    batch_sizes,
+                };
+
+                config.groups.insert(group_id, group);
+            }
+            Some(CreateConfigMenu::RemoveGroup) => {
+                let existing_groups =
+                    config.groups.keys().copied().collect::<Vec<_>>();
+
+                let Some(selected_groups) = inquire::MultiSelect::new(
+                        "Select groups to remove:",
+                        existing_groups,
+                    )
+                    .prompt_skippable()?
+                else {
+                    continue;
+                };
+
+                for group_id in selected_groups {
+                    config.groups.remove(&group_id);
+                }
+            }
+            Some(CreateConfigMenu::Proceed) => break,
+            None => std::process::exit(0),
+        }
+    }
+
+    crate::serde_utils::write_serialize(&config_path, config).await?;
+
+    Ok(config_path)
+}
+
+fn prompt_text_handle_errors<T>(prompt: &str) -> eyre::Result<T>
+where
+    T: FromStr,
+    <T as FromStr>::Err: std::error::Error,
+{
+    loop {
+        let t = inquire::Text::new(prompt).prompt()?;
+
+        match t.trim().parse() {
+            Ok(t) => return Ok(t),
+            Err(e) => {
+                println!("Error: {}", e);
+                continue;
+            }
+        }
+    }
+}
+
+fn prompt_text_skippable_handle_errors<T>(
+    prompt: &str,
+) -> eyre::Result<Option<T>>
+where
+    T: FromStr,
+    <T as FromStr>::Err: std::error::Error,
+{
+    loop {
+        let t = inquire::Text::new(prompt).prompt_skippable()?;
+
+        let Some(t) = t else {
+            return Ok(None);
+        };
+
+        match t.trim().parse() {
+            Ok(t) => return Ok(Some(t)),
+            Err(e) => {
+                println!("Error: {}", e);
+                continue;
+            }
         }
     }
 }

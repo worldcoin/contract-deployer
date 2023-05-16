@@ -23,6 +23,16 @@ macro_rules! impl_primitive_num {
                 self.0.fmt(f)
             }
         }
+
+        impl std::str::FromStr for $outer {
+            type Err = <$tname as std::str::FromStr>::Err;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let n = s.parse::<$tname>()?;
+
+                Ok(Self(n))
+            }
+        }
     };
 }
 

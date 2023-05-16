@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
-use args::DeploymentArgs;
+use args::{DeploymentArgs, PrivateKey};
 use assemble_report::REPORT_PATH;
 use clap::{CommandFactory, Parser};
 use common_keys::RpcSigner;
@@ -13,6 +13,7 @@ use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
 use interactive::{run_interactive_session, InteractiveCmd};
 use report::Report;
+use reqwest::Url;
 use tracing_error::ErrorLayer;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -65,6 +66,24 @@ pub struct Cmd {
     pub args: DeploymentArgs,
 }
 
+impl Cmd {
+    pub fn new(
+        config: PathBuf,
+        deployment_name: String,
+        private_key: PrivateKey,
+        rpc_url: Url,
+    ) -> Self {
+        Self {
+            config,
+            deployment_name,
+            args: DeploymentArgs {
+                private_key,
+                rpc_url,
+            },
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
@@ -97,8 +116,7 @@ async fn main() -> eyre::Result<()> {
 
 async fn start() -> eyre::Result<()> {
     let initial_args = InteractiveCmd::parse();
-    let args = run_interactive_session(initial_args).await?;
-    let cmd: Cmd = args.try_into()?;
+    let cmd = run_interactive_session(initial_args).await?;
 
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
