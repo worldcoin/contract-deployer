@@ -6,12 +6,12 @@ use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use super::insertion_verifier::InsertionVerifiers;
 use crate::common_keys::RpcSigner;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
-use crate::insertion_verifier::InsertionVerifiers;
 use crate::types::{BatchSize, GroupId, TreeDepth};
 use crate::{Config, DeploymentContext};
 
@@ -46,8 +46,8 @@ async fn deploy_lookup_table(
     let insert_lookup_table =
         ForgeCreate::new(ContractSpec::name("VerifierLookupTable"))
             .with_cwd("./world-id-contracts")
-            .with_private_key(context.args.private_key.clone())
-            .with_rpc_url(context.args.rpc_url.to_string())
+            .with_private_key(context.private_key.clone())
+            .with_rpc_url(context.rpc_url.to_string())
             .with_override_nonce(context.next_nonce())
             .run()
             .await?;

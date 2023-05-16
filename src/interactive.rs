@@ -1,19 +1,19 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use clap::Parser;
-use ethers::types::H256;
 use eyre::ContextCompat;
 use reqwest::Url;
 
-use crate::args::{DeploymentArgs, PrivateKey};
-use crate::assemble_report::REPORT_PATH;
-use crate::config::{Config, GroupConfig, MiscConfig};
+use self::create_config::create_config_interactive;
+use crate::args::PrivateKey;
+use crate::config::Config;
+use crate::deployment::steps::assemble_report::REPORT_PATH;
 use crate::report::Report;
-use crate::types::{BatchSize, GroupId, TreeDepth};
 use crate::{serde_utils, Cmd};
+
+mod create_config;
 
 #[derive(Clone, Debug)]
 enum MainMenu {
@@ -67,12 +67,8 @@ impl TryFrom<InteractiveCmd> for Cmd {
             deployment_name: value
                 .deployment_name
                 .context("Missing deployment name")?,
-            args: DeploymentArgs {
-                private_key: value
-                    .private_key
-                    .context("Missing private key")?,
-                rpc_url: value.rpc_url.context("Missing rpc url")?,
-            },
+            private_key: value.private_key.context("Missing private key")?,
+            rpc_url: value.rpc_url.context("Missing rpc url")?,
         })
     }
 }
@@ -230,111 +226,6 @@ fn print_deployment_diff(config: &Config, report: &Report) {
             }
         }
     }
-}
-
-enum CreateConfigMenu {
-    AddGroup,
-    RemoveGroup,
-    Proceed,
-}
-
-impl fmt::Display for CreateConfigMenu {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            CreateConfigMenu::AddGroup => write!(f, "Add group"),
-            CreateConfigMenu::RemoveGroup => write!(f, "Remove group"),
-            CreateConfigMenu::Proceed => write!(f, "Proceed"),
-        }
-    }
-}
-
-async fn create_config_interactive() -> eyre::Result<PathBuf> {
-    let config_path = loop {
-        let filename = inquire::Text::new("Config filename:").prompt()?;
-
-        let config_path = PathBuf::from(filename);
-
-        if config_path.exists() {
-            let overwrite =
-                inquire::Confirm::new("Overwrite existing file?").prompt()?;
-
-            if !overwrite {
-                continue;
-            }
-        }
-
-        break config_path;
-    };
-
-    let mut config = Config {
-        groups: HashMap::default(),
-        misc: MiscConfig {
-            initial_leaf_value: H256::zero(),
-        },
-    };
-
-    loop {
-        print_deployment_info(&config);
-
-        let option = inquire::Select::new(
-            "Menu (Esc to quit):",
-            vec![
-                CreateConfigMenu::AddGroup,
-                CreateConfigMenu::RemoveGroup,
-                CreateConfigMenu::Proceed,
-            ],
-        )
-        .prompt_skippable()?;
-
-        match option {
-            Some(CreateConfigMenu::AddGroup) => {
-                let group_id: GroupId = prompt_text_handle_errors("Group id:")?;
-
-                let tree_depth: TreeDepth =
-                    prompt_text_handle_errors("Tree depth:")?;
-
-                let mut batch_sizes = vec![];
-
-                while let Some(batch_size) =
-                    prompt_text_skippable_handle_errors(
-                        "Enter new batch size (Esc to finish):",
-                    )?
-                {
-                    batch_sizes.push(batch_size);
-                }
-
-                let group = GroupConfig {
-                    tree_depth,
-                    batch_sizes,
-                };
-
-                config.groups.insert(group_id, group);
-            }
-            Some(CreateConfigMenu::RemoveGroup) => {
-                let existing_groups =
-                    config.groups.keys().copied().collect::<Vec<_>>();
-
-                let Some(selected_groups) = inquire::MultiSelect::new(
-                        "Select groups to remove:",
-                        existing_groups,
-                    )
-                    .prompt_skippable()?
-                else {
-                    continue;
-                };
-
-                for group_id in selected_groups {
-                    config.groups.remove(&group_id);
-                }
-            }
-            Some(CreateConfigMenu::Proceed) => break,
-            None => std::process::exit(0),
-        }
-    }
-
-    crate::serde_utils::write_serialize(&config_path, config).await?;
-
-    Ok(config_path)
 }
 
 fn prompt_text_handle_errors<T>(prompt: &str) -> eyre::Result<T>

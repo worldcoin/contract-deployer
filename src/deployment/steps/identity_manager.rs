@@ -7,11 +7,11 @@ use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use super::lookup_tables::LookupTables;
+use super::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
-use crate::lookup_tables::LookupTables;
-use crate::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::types::GroupId;
 use crate::{Config, DeploymentContext};
 
@@ -51,8 +51,8 @@ async fn deploy_world_id_identity_manager_v1_for_group(
 
     let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.clone())
-        .with_rpc_url(context.args.rpc_url.to_string())
+        .with_private_key(context.private_key.clone())
+        .with_rpc_url(context.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .run()
         .await?;
@@ -93,8 +93,8 @@ async fn deploy_world_id_identity_manager_v1_for_group(
 
     let proxy_deployment = ForgeCreate::new(identity_manager_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.clone())
-        .with_rpc_url(context.args.rpc_url.to_string())
+        .with_private_key(context.private_key.clone())
+        .with_rpc_url(context.rpc_url.to_string())
         .with_override_nonce(context.next_nonce())
         .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)

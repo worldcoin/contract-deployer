@@ -204,8 +204,8 @@ pub async fn deploy_verifier_contract(
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
         .with_override_nonce(context.next_nonce())
-        .with_private_key(context.args.private_key.clone())
-        .with_rpc_url(context.args.rpc_url.to_string())
+        .with_private_key(context.private_key.clone())
+        .with_rpc_url(context.rpc_url.to_string())
         .run()
         .await?;
 

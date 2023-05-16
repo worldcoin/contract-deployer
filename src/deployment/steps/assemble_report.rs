@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use tracing::instrument;
 
+use super::identity_manager::WorldIDIdentityManagersDeployment;
+use super::insertion_verifier::InsertionVerifiers;
+use super::lookup_tables::LookupTables;
+use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use super::world_id_router::WorldIdRouterDeployment;
 use crate::config::Config;
-use crate::identity_manager::WorldIDIdentityManagersDeployment;
-use crate::insertion_verifier::InsertionVerifiers;
-use crate::lookup_tables::LookupTables;
 use crate::report::Report;
-use crate::semaphore_verifier::SemaphoreVerifierDeployment;
-use crate::world_id_router::WorldIdRouterDeployment;
 use crate::{serde_utils, DeploymentContext};
 
 pub const REPORT_PATH: &str = "report.yml";

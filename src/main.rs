@@ -2,12 +2,12 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
-use args::{DeploymentArgs, PrivateKey};
-use assemble_report::REPORT_PATH;
+use args::PrivateKey;
 use clap::{CommandFactory, Parser};
 use common_keys::RpcSigner;
 use config::Config;
 use dependency_map::DependencyMap;
+use deployment::steps::assemble_report::REPORT_PATH;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
@@ -20,6 +20,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
+use crate::deployment::steps::*;
+
 pub mod common_keys;
 pub mod dependency_map;
 pub mod ethers_utils;
@@ -28,15 +30,11 @@ pub mod serde_utils;
 pub mod utils;
 
 mod args;
-mod assemble_report;
 mod config;
-mod identity_manager;
-mod insertion_verifier;
-mod lookup_tables;
 mod report;
-mod semaphore_verifier;
 mod types;
-mod world_id_router;
+
+mod deployment;
 
 mod interactive;
 
@@ -47,7 +45,8 @@ pub struct DeploymentContext {
     pub dep_map: DependencyMap,
     pub nonce: AtomicU64,
     pub report: Report,
-    pub args: DeploymentArgs,
+    pub private_key: PrivateKey,
+    pub rpc_url: Url,
 }
 
 impl DeploymentContext {
@@ -63,7 +62,8 @@ impl DeploymentContext {
 pub struct Cmd {
     pub config: PathBuf,
     pub deployment_name: String,
-    pub args: DeploymentArgs,
+    pub private_key: PrivateKey,
+    pub rpc_url: Url,
 }
 
 impl Cmd {
@@ -76,40 +76,8 @@ impl Cmd {
         Self {
             config,
             deployment_name,
-            args: DeploymentArgs {
-                private_key,
-                rpc_url,
-            },
-        }
-    }
-}
-
-#[tokio::main]
-async fn main() -> eyre::Result<()> {
-    color_eyre::install()?;
-
-    dotenv::dotenv().ok();
-
-    let indicatif_layer = IndicatifLayer::new();
-
-    let filter = EnvFilter::from_default_env();
-
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_writer(indicatif_layer.get_stderr_writer())
-                .with_filter(filter),
-        )
-        .with(indicatif_layer)
-        .with(ErrorLayer::default())
-        .init();
-
-    match start().await {
-        Ok(()) => Ok(()),
-        Err(err) => {
-            let report = eyre::ErrReport::from(err);
-            tracing::error!("{:?}", report);
-            std::process::exit(1)
+            private_key,
+            rpc_url,
         }
     }
 }
@@ -127,9 +95,9 @@ async fn start() -> eyre::Result<()> {
 
     let dep_map = DependencyMap::new();
 
-    let provider = Provider::try_from(cmd.args.rpc_url.as_str())?;
+    let provider = Provider::try_from(cmd.rpc_url.as_str())?;
     let chain_id = provider.get_chainid().await?;
-    let wallet = Wallet::from(cmd.args.private_key.key.clone())
+    let wallet = Wallet::from(cmd.private_key.key.clone())
         .with_chain_id(chain_id.as_u64());
 
     let wallet_address = wallet.address();
@@ -156,7 +124,8 @@ async fn start() -> eyre::Result<()> {
         dep_map,
         nonce: AtomicU64::new(nonce.as_u64()),
         report,
-        args: cmd.args,
+        private_key: cmd.private_key,
+        rpc_url: cmd.rpc_url,
     };
 
     let context = Arc::new(context);
@@ -164,6 +133,7 @@ async fn start() -> eyre::Result<()> {
 
     let insertion_verifiers =
         insertion_verifier::deploy(context.clone(), config.clone()).await?;
+
     let lookup_tables = lookup_tables::deploy(
         context.clone(),
         config.clone(),
@@ -199,4 +169,34 @@ async fn start() -> eyre::Result<()> {
     .await?;
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
+
+    dotenv::dotenv().ok();
+
+    let indicatif_layer = IndicatifLayer::new();
+
+    let filter = EnvFilter::from_default_env();
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(indicatif_layer.get_stderr_writer())
+                .with_filter(filter),
+        )
+        .with(indicatif_layer)
+        .with(ErrorLayer::default())
+        .init();
+
+    match start().await {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            let report = eyre::ErrReport::from(err);
+            tracing::error!("{:?}", report);
+            std::process::exit(1)
+        }
+    }
 }

@@ -1,19 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use clap::Args;
 use ethers::prelude::k256::SecretKey;
-use reqwest::Url;
-
-#[derive(Debug, Clone, Args)]
-#[clap(rename_all = "kebab-case")]
-pub struct DeploymentArgs {
-    #[clap(short, long, env)]
-    pub private_key: PrivateKey,
-
-    #[clap(short, long, env)]
-    pub rpc_url: Url,
-}
 
 #[derive(Debug, Clone)]
 pub struct PrivateKey {
