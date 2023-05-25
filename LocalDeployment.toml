@@ -1,8 +1,0 @@
-[orb_identity_manager]
-group_id = 0
-tree_depth = 16
-batch_size = 3
-batch_sizes = [3]
-
-[state_bridge]
-address = "0x00000000000000000"
