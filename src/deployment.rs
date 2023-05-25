@@ -1,85 +1,25 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
-use reqwest::Url;
 
 use self::steps::assemble_report::REPORT_PATH;
 use self::steps::*;
-use crate::cli::PrivateKey;
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
 use crate::dependency_map::DependencyMap;
-use crate::forge_utils::{ContractSpec, ForgeCreate};
 use crate::report::Report;
 use crate::serde_utils;
 
+pub mod cmd;
+pub mod deployment_context;
 pub mod steps;
 
-#[derive(Debug)]
-pub struct DeploymentContext {
-    pub deployment_dir: PathBuf,
-    pub cache_dir: PathBuf,
-    pub dep_map: DependencyMap,
-    pub nonce: AtomicU64,
-    pub report: Report,
-    pub private_key: PrivateKey,
-    pub rpc_url: Url,
-    pub etherscan_api_key: Option<String>,
-}
-
-impl DeploymentContext {
-    pub fn next_nonce(&self) -> u64 {
-        self.nonce.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-    }
-
-    pub fn cache_path(&self, path: impl AsRef<Path>) -> PathBuf {
-        self.cache_dir.join(path)
-    }
-
-    pub fn forge_create(&self, contract_spec: ContractSpec) -> ForgeCreate {
-        let mut forge_create = ForgeCreate::new(contract_spec)
-            .with_private_key(self.private_key.clone())
-            .with_rpc_url(self.rpc_url.to_string())
-            .with_override_nonce(self.next_nonce());
-
-        if let Some(etherscan_api_key) = self.etherscan_api_key.as_ref() {
-            forge_create = forge_create
-                .with_verification_api_key(etherscan_api_key.clone());
-        }
-
-        forge_create
-    }
-}
-
-pub struct Cmd {
-    pub config: PathBuf,
-    pub deployment_name: String,
-    pub private_key: PrivateKey,
-    pub rpc_url: Url,
-    pub etherscan_api_key: Option<String>,
-}
-
-impl Cmd {
-    pub fn new(
-        config: PathBuf,
-        deployment_name: String,
-        private_key: PrivateKey,
-        rpc_url: Url,
-        etherscan_api_key: Option<String>,
-    ) -> Self {
-        Self {
-            config,
-            deployment_name,
-            private_key,
-            rpc_url,
-            etherscan_api_key,
-        }
-    }
-}
+pub use self::cmd::Cmd;
+pub use self::deployment_context::DeploymentContext;
 
 pub async fn run_deployment(cmd: Cmd) -> eyre::Result<()> {
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;

@@ -105,6 +105,7 @@ pub async fn run_interactive_session(cmd: Args) -> eyre::Result<Cmd> {
                 private_key,
                 rpc_url,
                 etherscan_api_key,
+                cmd.cache_dir,
             ));
         }
 
@@ -172,6 +173,7 @@ pub async fn run_interactive_session(cmd: Args) -> eyre::Result<Cmd> {
         private_key,
         rpc_url,
         etherscan_api_key,
+        cmd.cache_dir,
     ))
 }
 
