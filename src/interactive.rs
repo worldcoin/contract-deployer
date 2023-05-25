@@ -1,30 +1,24 @@
-use std::fmt;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use self::create_config::create_config_interactive;
 use crate::cli::Args;
 use crate::config::Config;
 use crate::deployment::steps::assemble_report::REPORT_PATH;
 use crate::deployment::Cmd;
+use crate::interactive::add_group::add_group;
 use crate::report::Report;
 use crate::serde_utils;
 
+mod add_group;
 mod create_config;
+mod utils;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, derive_more::Display)]
 enum MainMenu {
-    Rename,
+    #[display(fmt = "proceed")]
     Proceed,
-}
-
-impl fmt::Display for MainMenu {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Rename => write!(f, "Rename"),
-            Self::Proceed => write!(f, "Proceed"),
-        }
-    }
+    #[display(fmt = "Add group")]
+    AddGroup,
 }
 
 pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
@@ -67,7 +61,7 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
     };
 
     loop {
-        let config: Config =
+        let mut config: Config =
             serde_utils::read_deserialize(&config_path).await?;
 
         let deployment_dir = PathBuf::from(&deployment_name);
@@ -89,13 +83,14 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
 
             return Ok(Cmd::new(
                 config_path,
-                deployment_name.clone(),
+                deployment_name,
                 private_key,
                 rpc_url,
+                cmd.etherscan_api_key,
             ));
         }
 
-        let report: Report =
+        let mut report: Report =
             serde_utils::read_deserialize(&report_path).await?;
 
         println!("Deployment name: {deployment_name}");
@@ -107,20 +102,30 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
 
         match inquire::Select::new(
             "Menu:",
-            vec![MainMenu::Rename, MainMenu::Proceed],
+            vec![MainMenu::Proceed, MainMenu::AddGroup],
         )
         .prompt_skippable()?
         {
-            Some(MainMenu::Rename) => {
-                let Some(new_name) = inquire::Text::new("New name").prompt_skippable()? else {
-                    continue;
-                };
-
-                cmd.deployment_name = Some(new_name);
-            }
             Some(MainMenu::Proceed) => break,
+            Some(MainMenu::AddGroup) => {
+                let (group_id, group) = add_group()?;
+
+                if config.groups.contains_key(&group_id) {
+                    if !inquire::Confirm::new(&format!("Group with id {} already exists, do you want to replace it?", group_id)).prompt()? {
+                        continue;
+                    }
+                }
+
+                if config.groups.insert(group_id, group).is_some() {
+                    // We must invalidate any previous deployment
+                    report.invalidate_group_id(group_id);
+                }
+            }
             None => std::process::exit(0),
         }
+
+        serde_utils::write_serialize(&config_path, &config).await?;
+        serde_utils::write_serialize(&report_path, &report).await?;
     }
 
     Ok(Cmd::new(
@@ -128,6 +133,7 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
         deployment_name.clone(),
         private_key,
         rpc_url,
+        cmd.etherscan_api_key,
     ))
 }
 
@@ -181,48 +187,8 @@ fn print_deployment_diff(config: &Config, report: &Report) {
                     println!("      Batch size {}: (undeployed)", batch_size);
                 }
             }
-        }
-    }
-}
-
-fn prompt_text_handle_errors<T>(prompt: &str) -> eyre::Result<T>
-where
-    T: FromStr,
-    <T as FromStr>::Err: std::error::Error,
-{
-    loop {
-        let t = inquire::Text::new(prompt).prompt()?;
-
-        match t.trim().parse() {
-            Ok(t) => return Ok(t),
-            Err(e) => {
-                println!("Error: {}", e);
-                continue;
-            }
-        }
-    }
-}
-
-fn prompt_text_skippable_handle_errors<T>(
-    prompt: &str,
-) -> eyre::Result<Option<T>>
-where
-    T: FromStr,
-    <T as FromStr>::Err: std::error::Error,
-{
-    loop {
-        let t = inquire::Text::new(prompt).prompt_skippable()?;
-
-        let Some(t) = t else {
-            return Ok(None);
-        };
-
-        match t.trim().parse() {
-            Ok(t) => return Ok(Some(t)),
-            Err(e) => {
-                println!("Error: {}", e);
-                continue;
-            }
+        } else {
+            println!("    Insert lookup table: (undeployed)");
         }
     }
 }

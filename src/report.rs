@@ -5,6 +5,7 @@ use crate::deployment::steps::insertion_verifier::InsertionVerifiers;
 use crate::deployment::steps::lookup_tables::LookupTables;
 use crate::deployment::steps::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::deployment::steps::world_id_router::WorldIdRouterDeployment;
+use crate::types::GroupId;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -37,6 +38,11 @@ impl Report {
             identity_managers: Default::default(),
             world_id_router: Default::default(),
         }
+    }
+
+    pub fn invalidate_group_id(&mut self, group_id: GroupId) {
+        self.lookup_tables.groups.remove(&group_id);
+        self.identity_managers.groups.remove(&group_id);
     }
 }
 

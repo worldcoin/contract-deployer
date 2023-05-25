@@ -44,14 +44,11 @@ pub struct InsertLookupTable {
 async fn deploy_lookup_table(
     context: &DeploymentContext,
 ) -> eyre::Result<ForgeOutput> {
-    let insert_lookup_table =
-        ForgeCreate::new(ContractSpec::name("VerifierLookupTable"))
-            .with_cwd("./world-id-contracts")
-            .with_private_key(context.private_key.clone())
-            .with_rpc_url(context.rpc_url.to_string())
-            .with_override_nonce(context.next_nonce())
-            .run()
-            .await?;
+    let insert_lookup_table = context
+        .forge_create(ContractSpec::name("VerifierLookupTable"))
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
 
     Ok(insert_lookup_table)
 }

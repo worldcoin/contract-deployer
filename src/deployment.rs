@@ -13,6 +13,7 @@ use crate::cli::PrivateKey;
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
 use crate::dependency_map::DependencyMap;
+use crate::forge_utils::{ContractSpec, ForgeCreate};
 use crate::report::Report;
 use crate::serde_utils;
 
@@ -27,6 +28,7 @@ pub struct DeploymentContext {
     pub report: Report,
     pub private_key: PrivateKey,
     pub rpc_url: Url,
+    pub etherscan_api_key: Option<String>,
 }
 
 impl DeploymentContext {
@@ -37,6 +39,20 @@ impl DeploymentContext {
     pub fn cache_path(&self, path: impl AsRef<Path>) -> PathBuf {
         self.cache_dir.join(path)
     }
+
+    pub fn forge_create(&self, contract_spec: ContractSpec) -> ForgeCreate {
+        let mut forge_create = ForgeCreate::new(contract_spec)
+            .with_private_key(self.private_key.clone())
+            .with_rpc_url(self.rpc_url.to_string())
+            .with_override_nonce(self.next_nonce());
+
+        if let Some(etherscan_api_key) = self.etherscan_api_key.as_ref() {
+            forge_create = forge_create
+                .with_verification_api_key(etherscan_api_key.clone());
+        }
+
+        forge_create
+    }
 }
 
 pub struct Cmd {
@@ -44,6 +60,7 @@ pub struct Cmd {
     pub deployment_name: String,
     pub private_key: PrivateKey,
     pub rpc_url: Url,
+    pub etherscan_api_key: Option<String>,
 }
 
 impl Cmd {
@@ -52,12 +69,14 @@ impl Cmd {
         deployment_name: String,
         private_key: PrivateKey,
         rpc_url: Url,
+        etherscan_api_key: Option<String>
     ) -> Self {
         Self {
             config,
             deployment_name,
             private_key,
             rpc_url,
+            etherscan_api_key,
         }
     }
 }
@@ -103,6 +122,7 @@ pub async fn run_deployment(cmd: Cmd) -> eyre::Result<()> {
         report,
         private_key: cmd.private_key,
         rpc_url: cmd.rpc_url,
+        etherscan_api_key: cmd.etherscan_api_key,
     };
 
     let context = Arc::new(context);
@@ -117,8 +137,10 @@ pub async fn run_deployment(cmd: Cmd) -> eyre::Result<()> {
         &insertion_verifiers,
     )
     .await?;
+
     let semaphore_verifier =
         semaphore_verifier::deploy(context.clone(), config.clone()).await?;
+
     let identity_manager = identity_manager::deploy(
         context.clone(),
         config.clone(),

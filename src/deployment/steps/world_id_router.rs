@@ -36,11 +36,9 @@ async fn deploy_world_id_router_v1(
     let contract_spec = ContractSpec::name("WorldIDRouter");
     let impl_spec = ContractSpec::name("WorldIDRouterImplV1");
 
-    let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
+    let impl_v1_deployment = context
+        .forge_create(impl_spec.clone())
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.private_key.clone())
-        .with_rpc_url(context.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .run()
         .await?;
 
@@ -53,11 +51,9 @@ async fn deploy_world_id_router_v1(
 
     let call_data = encode_function_data(initialize_func, first_group_address)?;
 
-    let proxy_deployment = ForgeCreate::new(contract_spec)
+    let proxy_deployment = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.private_key.clone())
-        .with_rpc_url(context.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)
         .run()

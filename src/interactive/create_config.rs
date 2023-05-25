@@ -1,31 +1,21 @@
 use std::collections::HashMap;
-use std::fmt;
 use std::path::PathBuf;
 
+use derive_more::Display;
 use ethers::types::H256;
 
-use crate::config::{Config, GroupConfig, MiscConfig};
-use crate::types::{GroupId, TreeDepth};
+use super::add_group::add_group;
+use super::print_deployment_info;
+use crate::config::{Config, MiscConfig};
 
-use super::{
-    print_deployment_info, prompt_text_handle_errors,
-    prompt_text_skippable_handle_errors,
-};
-
+#[derive(Debug, Clone, Copy, Display)]
 enum CreateConfigMenu {
+    #[display(fmt = "Add group")]
     AddGroup,
+    #[display(fmt = "Remove group")]
     RemoveGroup,
+    #[display(fmt = "Proceed")]
     Proceed,
-}
-
-impl fmt::Display for CreateConfigMenu {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            CreateConfigMenu::AddGroup => write!(f, "Add group"),
-            CreateConfigMenu::RemoveGroup => write!(f, "Remove group"),
-            CreateConfigMenu::Proceed => write!(f, "Proceed"),
-        }
-    }
 }
 
 pub async fn create_config_interactive() -> eyre::Result<PathBuf> {
@@ -68,25 +58,7 @@ pub async fn create_config_interactive() -> eyre::Result<PathBuf> {
 
         match option {
             Some(CreateConfigMenu::AddGroup) => {
-                let group_id: GroupId = prompt_text_handle_errors("Group id:")?;
-
-                let tree_depth: TreeDepth =
-                    prompt_text_handle_errors("Tree depth:")?;
-
-                let mut batch_sizes = vec![];
-
-                while let Some(batch_size) =
-                    prompt_text_skippable_handle_errors(
-                        "Enter new batch size (Esc to finish):",
-                    )?
-                {
-                    batch_sizes.push(batch_size);
-                }
-
-                let group = GroupConfig {
-                    tree_depth,
-                    batch_sizes,
-                };
+                let (group_id, group) = add_group()?;
 
                 config.groups.insert(group_id, group);
             }

@@ -14,12 +14,6 @@ pub struct Args {
     #[clap(short, long, env)]
     pub config: Option<PathBuf>,
 
-    /// Run in interactive mode
-    ///
-    /// NOTE: If not running in interactive mode ALL the values must be provided
-    #[clap(short, long)]
-    pub interactive: bool,
-
     /// The name of the deployment
     ///
     /// Should be something meaningful like 'prod-2023-04-18'
@@ -33,4 +27,8 @@ pub struct Args {
     /// The RPC Url to use for the deployment
     #[clap(short, long, env)]
     pub rpc_url: Option<Url>,
+
+    /// The etherscan API key to use
+    #[clap(short, long, env)]
+    pub etherscan_api_key: Option<String>,
 }

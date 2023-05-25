@@ -200,12 +200,11 @@ pub async fn deploy_verifier_contract(
     let contract_spec =
         ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
-    let output = ForgeCreate::new(contract_spec)
+    let output = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
-        .with_override_nonce(context.next_nonce())
-        .with_private_key(context.private_key.clone())
-        .with_rpc_url(context.rpc_url.to_string())
+        .no_verify()
         .run()
         .await?;
 
