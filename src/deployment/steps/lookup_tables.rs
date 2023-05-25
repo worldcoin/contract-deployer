@@ -10,9 +10,8 @@ use super::insertion_verifier::InsertionVerifiers;
 use crate::common_keys::RpcSigner;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
-use crate::forge_utils::{
-    ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
-};
+use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
+use crate::report::contract_deployment::ContractDeployment;
 use crate::types::{BatchSize, GroupId, TreeDepth};
 use crate::Config;
 
@@ -29,13 +28,13 @@ pub struct GroupLookupTables {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct UpdateLookupTable {
-    pub deployment: ForgeOutput,
+    pub deployment: ContractDeployment,
     // TODO: Support entries
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct InsertLookupTable {
-    pub deployment: ForgeOutput,
+    pub deployment: ContractDeployment,
     #[serde(default)]
     pub entries: HashMap<BatchSize, Address>,
 }
@@ -43,14 +42,14 @@ pub struct InsertLookupTable {
 #[instrument(skip_all)]
 async fn deploy_lookup_table(
     context: &DeploymentContext,
-) -> eyre::Result<ForgeOutput> {
+) -> eyre::Result<ContractDeployment> {
     let insert_lookup_table = context
         .forge_create(ContractSpec::name("VerifierLookupTable"))
         .with_cwd("./world-id-contracts")
         .run()
         .await?;
 
-    Ok(insert_lookup_table)
+    Ok(insert_lookup_table.into())
 }
 
 #[instrument(skip(context))]
@@ -115,14 +114,14 @@ async fn associate_group_batch_size_verifier(
         .signer(signer)
         .abi(verifier_abi.clone())
         .function_name("updateVerifier")
-        .args((batch_size.0 as u64, verifier.deployment.deployed_to))
+        .args((batch_size.0 as u64, verifier.deployment.address))
         .to(lookup_table_address)
         .context(context.as_ref())
         .build()?
         .send()
         .await?;
 
-    Ok(verifier.deployment.deployed_to)
+    Ok(verifier.deployment.address)
 }
 
 #[instrument(skip(context, verifier_abi))]
@@ -174,7 +173,7 @@ pub async fn deploy(
 
         let group_id = *group_id;
 
-        let lookup_table_address = group.insert.deployment.deployed_to;
+        let lookup_table_address = group.insert.deployment.address;
 
         let config_batch_sizes: HashSet<_> =
             group_config.batch_sizes.iter().copied().collect();

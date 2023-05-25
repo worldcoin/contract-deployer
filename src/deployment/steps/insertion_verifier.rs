@@ -9,7 +9,8 @@ use tracing::{info, instrument};
 
 use crate::config::Config;
 use crate::deployment::DeploymentContext;
-use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
+use crate::forge_utils::ContractSpec;
+use crate::report::contract_deployment::ContractDeployment;
 use crate::types::{BatchSize, TreeDepth};
 
 const MTB_BIN: &str = "mtb";
@@ -23,7 +24,7 @@ pub struct InsertionVerifiers {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct InsertionVerifier {
-    pub deployment: ForgeOutput,
+    pub deployment: ContractDeployment,
 }
 
 #[instrument(skip_all)]
@@ -180,7 +181,7 @@ pub async fn deploy_verifier_contract(
     verifier_contract: impl AsRef<Path>,
     tree_depth: TreeDepth,
     batch_size: BatchSize,
-) -> eyre::Result<ForgeOutput> {
+) -> eyre::Result<ContractDeployment> {
     let verifier_contract = verifier_contract.as_ref().canonicalize()?;
 
     if let Some(existing_deployment) = context
@@ -189,7 +190,7 @@ pub async fn deploy_verifier_contract(
         .verifiers
         .get(&(tree_depth, batch_size))
     {
-        info!("Found previous verifier deployment for tree depth {tree_depth} and batch size {batch_size} at {:?}", existing_deployment.deployment.deployed_to);
+        info!("Found previous verifier deployment for tree depth {tree_depth} and batch size {batch_size} at {:?}", existing_deployment.deployment.address);
         return Ok(existing_deployment.deployment.clone());
     }
 
@@ -208,7 +209,7 @@ pub async fn deploy_verifier_contract(
         .run()
         .await?;
 
-    Ok(output)
+    Ok(output.into())
 }
 
 #[instrument(name = "verifiers", skip_all)]

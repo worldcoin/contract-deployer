@@ -11,16 +11,15 @@ use super::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::common_keys::RpcSigner;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
-use crate::forge_utils::{
-    ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
-};
+use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
+use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {
-    pub impl_v1_deployment: ForgeOutput,
-    pub proxy_deployment: ForgeOutput,
+    pub impl_v1_deployment: ContractDeployment,
+    pub proxy_deployment: ContractDeployment,
     pub entries: HashMap<GroupId, Address>,
 }
 
@@ -60,8 +59,8 @@ async fn deploy_world_id_router_v1(
         .await?;
 
     Ok(WorldIdRouterDeployment {
-        impl_v1_deployment,
-        proxy_deployment,
+        impl_v1_deployment: impl_v1_deployment.into(),
+        proxy_deployment: proxy_deployment.into(),
         entries: maplit::hashmap! {
             GroupId(0) => first_group_address
         },
@@ -170,7 +169,7 @@ pub async fn deploy(
 
     let mut world_id_router_deployment = deploy_world_id_router_v1(
         context.as_ref(),
-        first_group.proxy_deployment.deployed_to,
+        first_group.proxy_deployment.address,
     )
     .await
     .context("deploying world id router implementation")?;
@@ -184,7 +183,7 @@ pub async fn deploy(
             .get(&group_id)
             .context("Missing group")?
             .proxy_deployment
-            .deployed_to;
+            .address;
 
         if let Some(current_group_address) =
             world_id_router_deployment.entries.get_mut(&group_id)
@@ -192,7 +191,7 @@ pub async fn deploy(
             if *current_group_address != group_identity_manager_address {
                 update_group_route(
                     context.as_ref(),
-                    world_id_router_deployment.proxy_deployment.deployed_to,
+                    world_id_router_deployment.proxy_deployment.address,
                     group_id,
                     group_identity_manager_address,
                 )
@@ -203,7 +202,7 @@ pub async fn deploy(
         } else {
             add_group_route(
                 context.as_ref(),
-                world_id_router_deployment.proxy_deployment.deployed_to,
+                world_id_router_deployment.proxy_deployment.address,
                 group_id,
                 group_identity_manager_address,
             )
@@ -220,7 +219,7 @@ pub async fn deploy(
             if !config.groups.contains_key(&deployment_group_id) {
                 remove_group_route(
                     context.as_ref(),
-                    world_id_router_deployment.proxy_deployment.deployed_to,
+                    world_id_router_deployment.proxy_deployment.address,
                     deployment_group_id,
                 )
                 .await?;

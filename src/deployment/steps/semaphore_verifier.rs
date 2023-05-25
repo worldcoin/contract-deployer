@@ -5,19 +5,20 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::deployment::DeploymentContext;
-use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
+use crate::forge_utils::{ContractSpec, ExternalDep};
+use crate::report::contract_deployment::ContractDeployment;
 use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SemaphoreVerifierDeployment {
-    pub verifier_deployment: ForgeOutput,
-    pub pairing_deployment: ForgeOutput,
+    pub verifier_deployment: ContractDeployment,
+    pub pairing_deployment: ContractDeployment,
 }
 
 #[instrument(skip_all)]
 async fn deploy_semaphore_pairing_library(
     context: &DeploymentContext,
-) -> eyre::Result<ForgeOutput> {
+) -> eyre::Result<ContractDeployment> {
     if let Some(previous_deployment) =
         context.report.semaphore_verifier.as_ref()
     {
@@ -33,14 +34,14 @@ async fn deploy_semaphore_pairing_library(
         .run()
         .await?;
 
-    Ok(output)
+    Ok(output.into())
 }
 
 #[instrument(skip_all)]
 async fn deploy_semaphore_verifier(
     context: &DeploymentContext,
     pairing_address: Address,
-) -> eyre::Result<ForgeOutput> {
+) -> eyre::Result<ContractDeployment> {
     if let Some(previous_deployment) =
         context.report.semaphore_verifier.as_ref()
     {
@@ -61,7 +62,7 @@ async fn deploy_semaphore_verifier(
         .run()
         .await?;
 
-    Ok(output)
+    Ok(output.into())
 }
 
 pub async fn deploy(
@@ -71,7 +72,7 @@ pub async fn deploy(
     let pairing_deployment =
         deploy_semaphore_pairing_library(context.as_ref()).await?;
 
-    let pairing_address = pairing_deployment.deployed_to;
+    let pairing_address = pairing_deployment.address;
 
     let verifier_deployment =
         deploy_semaphore_verifier(context.as_ref(), pairing_address).await?;

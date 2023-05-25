@@ -8,6 +8,8 @@ use crate::deployment::steps::world_id_router::WorldIdRouterDeployment;
 use crate::types::GroupId;
 use crate::Config;
 
+pub mod contract_deployment;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Report {
     pub config: Config,

@@ -10,9 +10,8 @@ use tracing::{info, instrument};
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::deployment::DeploymentContext;
-use crate::forge_utils::{
-    ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
-};
+use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
+use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
 use crate::Config;
 
@@ -23,8 +22,8 @@ pub struct WorldIDIdentityManagersDeployment {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldIdIdentityManagerDeployment {
-    pub impl_v1_deployment: ForgeOutput,
-    pub proxy_deployment: ForgeOutput,
+    pub impl_v1_deployment: ContractDeployment,
+    pub proxy_deployment: ContractDeployment,
 }
 
 #[instrument(skip_all)]
@@ -80,11 +79,9 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         (
             group_config.tree_depth.0 as u64,
             initial_root_u256,
-            group_lookup_tables.insert.deployment.deployed_to,
-            group_lookup_tables.update.deployment.deployed_to,
-            semaphore_verifier_deployment
-                .verifier_deployment
-                .deployed_to,
+            group_lookup_tables.insert.deployment.address,
+            group_lookup_tables.update.deployment.address,
+            semaphore_verifier_deployment.verifier_deployment.address,
             false,
             Address::default(), // TODO: processedStateBridgeAddress
         ),
@@ -99,8 +96,8 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         .await?;
 
     Ok(WorldIdIdentityManagerDeployment {
-        impl_v1_deployment,
-        proxy_deployment,
+        impl_v1_deployment: impl_v1_deployment.into(),
+        proxy_deployment: proxy_deployment.into(),
     })
 }
 

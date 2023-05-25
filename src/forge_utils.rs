@@ -255,7 +255,7 @@ fn strip_non_json(s: &str) -> &str {
     if let Some(last_closing_brace) = s.rfind('}') {
         &s[..=last_closing_brace]
     } else {
-        &s
+        s
     }
 }
 

@@ -133,7 +133,8 @@ pub async fn run_interactive_session(cmd: Args) -> eyre::Result<Cmd> {
                 let (group_id, group) = add_group()?;
 
                 if config.groups.contains_key(&group_id) {
-                    if !inquire::Confirm::new(&format!("Group with id {} already exists, do you want to replace it?", group_id)).prompt()? {
+                    let should_replace = inquire::Confirm::new(&format!("Group with id {} already exists, do you want to replace it?", group_id)).prompt()?;
+                    if !should_replace {
                         continue;
                     }
                 }
@@ -191,7 +192,7 @@ fn print_deployment_diff(config: &Config, report: &Report) {
     if let Some(world_id_router) = report.world_id_router.as_ref() {
         println!(
             "Router address: {:?}",
-            world_id_router.proxy_deployment.deployed_to
+            world_id_router.proxy_deployment.address
         );
     }
 
@@ -202,7 +203,7 @@ fn print_deployment_diff(config: &Config, report: &Report) {
         {
             println!(
                 "    Identity manager: {:?}",
-                group_report.proxy_deployment.deployed_to
+                group_report.proxy_deployment.address
             );
         } else {
             println!("    Identity manager: (undeployed)",);
@@ -214,7 +215,7 @@ fn print_deployment_diff(config: &Config, report: &Report) {
             report.lookup_tables.groups.get(group_id)
         {
             let lookup_table_address =
-                lookup_table_group.insert.deployment.deployed_to;
+                lookup_table_group.insert.deployment.address;
             println!("    Insert lookup table: {:?}", lookup_table_address);
 
             for batch_size in &group.batch_sizes {

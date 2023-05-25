@@ -52,8 +52,7 @@ async fn main() -> eyre::Result<()> {
     match run_deployment(cmd).await {
         Ok(()) => Ok(()),
         Err(err) => {
-            let report = eyre::ErrReport::from(err);
-            tracing::error!("{:?}", report);
+            tracing::error!("{:?}", err);
             std::process::exit(1)
         }
     }

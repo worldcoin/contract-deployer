@@ -69,7 +69,7 @@ impl Cmd {
         deployment_name: String,
         private_key: PrivateKey,
         rpc_url: Url,
-        etherscan_api_key: Option<String>
+        etherscan_api_key: Option<String>,
     ) -> Self {
         Self {
             config,
