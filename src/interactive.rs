@@ -23,7 +23,7 @@ enum MainMenu {
     RemoveGroups,
 }
 
-pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
+pub async fn run_interactive_session(cmd: Args) -> eyre::Result<Cmd> {
     let deployment_name = if let Some(name) = cmd.deployment_name.as_ref() {
         println!("Currently working on deployment: {}", name);
         name.clone()
@@ -46,6 +46,22 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
         let rpc_url = inquire::Text::new("Rpc Url:").prompt()?;
         rpc_url.parse()?
     };
+
+    let etherscan_api_key =
+        if let Some(etherscan_api_key) = cmd.etherscan_api_key.as_ref() {
+            println!("Using Etherscan API key: {etherscan_api_key}");
+            Some(etherscan_api_key.clone())
+        } else {
+            let etherscan_api_key =
+                inquire::Text::new("Etherscan API key (leave empty to skip):")
+                    .prompt()?;
+
+            if etherscan_api_key.trim().is_empty() {
+                None
+            } else {
+                Some(etherscan_api_key)
+            }
+        };
 
     let config_path = if let Some(config) = cmd.config.as_ref() {
         println!("Using config at: {}", config.display());
@@ -88,7 +104,7 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
                 deployment_name,
                 private_key,
                 rpc_url,
-                cmd.etherscan_api_key,
+                etherscan_api_key,
             ));
         }
 
@@ -104,7 +120,11 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
 
         match inquire::Select::new(
             "Menu:",
-            vec![MainMenu::Proceed, MainMenu::AddGroup, MainMenu::RemoveGroups],
+            vec![
+                MainMenu::Proceed,
+                MainMenu::AddGroup,
+                MainMenu::RemoveGroups,
+            ],
         )
         .prompt_skippable()?
         {
@@ -126,7 +146,12 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
             Some(MainMenu::RemoveGroups) => {
                 let available_groups = config.groups.keys().copied().collect();
 
-                if let Some(groups_to_remove) = inquire::MultiSelect::new("Select groups to remove", available_groups).prompt_skippable()? {
+                if let Some(groups_to_remove) = inquire::MultiSelect::new(
+                    "Select groups to remove",
+                    available_groups,
+                )
+                .prompt_skippable()?
+                {
                     for group_id in groups_to_remove {
                         config.groups.remove(&group_id);
                         report.invalidate_group_id(group_id);
@@ -145,7 +170,7 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
         deployment_name.clone(),
         private_key,
         rpc_url,
-        cmd.etherscan_api_key,
+        etherscan_api_key,
     ))
 }
 
@@ -180,9 +205,7 @@ fn print_deployment_diff(config: &Config, report: &Report) {
                 group_report.proxy_deployment.deployed_to
             );
         } else {
-            println!(
-                "    Identity manager: (undeployed)",
-            );
+            println!("    Identity manager: (undeployed)",);
         }
 
         println!("    Tree depth: {}", group.tree_depth);
