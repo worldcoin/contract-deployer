@@ -128,6 +128,35 @@ async fn add_group_route(
     Ok(())
 }
 
+#[instrument(skip(context))]
+async fn remove_group_route(
+    context: &DeploymentContext,
+    world_id_router_address: Address,
+    group_id: GroupId,
+) -> eyre::Result<()> {
+    let impl_spec = ContractSpec::name("WorldIDRouterImplV1");
+
+    let impl_abi = ForgeInspectAbi::new(impl_spec.clone())
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
+
+    let signer = context.dep_map.get::<RpcSigner>().await;
+
+    let tx = TransactionBuilder::default()
+        .signer(signer.clone())
+        .abi(impl_abi.clone())
+        .function_name("disableGroup")
+        .args(group_id.0 as u64)
+        .to(world_id_router_address)
+        .context(context)
+        .build()?;
+
+    tx.send().await?;
+
+    Ok(())
+}
+
 #[instrument(name = "world_id_router", skip_all)]
 pub async fn deploy(
     context: Arc<DeploymentContext>,
@@ -184,6 +213,23 @@ pub async fn deploy(
             world_id_router_deployment
                 .entries
                 .insert(group_id, group_identity_manager_address);
+        }
+
+        let deployment_group_ids: Vec<_> =
+            world_id_router_deployment.entries.keys().copied().collect();
+        for deployment_group_id in deployment_group_ids {
+            if !config.groups.contains_key(&deployment_group_id) {
+                remove_group_route(
+                    context.as_ref(),
+                    world_id_router_deployment.proxy_deployment.deployed_to,
+                    deployment_group_id,
+                )
+                .await?;
+
+                world_id_router_deployment
+                    .entries
+                    .remove(&deployment_group_id);
+            }
         }
     }
 

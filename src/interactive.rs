@@ -19,6 +19,8 @@ enum MainMenu {
     Proceed,
     #[display(fmt = "Add group")]
     AddGroup,
+    #[display(fmt = "Remove groups")]
+    RemoveGroups,
 }
 
 pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
@@ -102,7 +104,7 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
 
         match inquire::Select::new(
             "Menu:",
-            vec![MainMenu::Proceed, MainMenu::AddGroup],
+            vec![MainMenu::Proceed, MainMenu::AddGroup, MainMenu::RemoveGroups],
         )
         .prompt_skippable()?
         {
@@ -119,6 +121,16 @@ pub async fn run_interactive_session(mut cmd: Args) -> eyre::Result<Cmd> {
                 if config.groups.insert(group_id, group).is_some() {
                     // We must invalidate any previous deployment
                     report.invalidate_group_id(group_id);
+                }
+            }
+            Some(MainMenu::RemoveGroups) => {
+                let available_groups = config.groups.keys().copied().collect();
+
+                if let Some(groups_to_remove) = inquire::MultiSelect::new("Select groups to remove", available_groups).prompt_skippable()? {
+                    for group_id in groups_to_remove {
+                        config.groups.remove(&group_id);
+                        report.invalidate_group_id(group_id);
+                    }
                 }
             }
             None => std::process::exit(0),
@@ -166,6 +178,10 @@ fn print_deployment_diff(config: &Config, report: &Report) {
             println!(
                 "    Identity manager: {:?}",
                 group_report.proxy_deployment.deployed_to
+            );
+        } else {
+            println!(
+                "    Identity manager: (undeployed)",
             );
         }
 
