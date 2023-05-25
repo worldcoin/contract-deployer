@@ -178,7 +178,6 @@ pub async fn deploy(
     let mut group_ids: Vec<_> = config.groups.keys().copied().collect();
     group_ids.sort();
 
-    // TODO: Add removal option
     for group_id in group_ids {
         let group_identity_manager_address = identity_managers
             .groups
