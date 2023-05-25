@@ -5,6 +5,8 @@ use ethers::types::{Address, H256};
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use crate::cli::PrivateKey;
+
 #[derive(Debug, Clone)]
 pub struct ContractSpec {
     pub path: Option<PathBuf>,
@@ -75,12 +77,13 @@ pub struct ForgeCreate {
     cwd: Option<PathBuf>,
     contract_spec: ContractSpec,
     override_contract_source: Option<PathBuf>,
-    verify: bool,
-    private_key: Option<String>,
+    private_key: Option<PrivateKey>,
     rpc_url: Option<String>,
     external_deps: Vec<ExternalDep>,
     override_nonce: Option<u64>,
     constructor_args: Vec<String>,
+    verification_api_key: Option<String>,
+    no_verify: bool,
 }
 
 pub struct ForgeInspectAbi {
@@ -104,12 +107,26 @@ impl ForgeCreate {
             contract_spec,
             override_contract_source: None,
             override_nonce: None,
-            verify: false,
             private_key: None,
             rpc_url: None,
             external_deps: vec![],
             constructor_args: vec![],
+            verification_api_key: None,
+            no_verify: false,
         }
+    }
+
+    pub fn no_verify(mut self) -> Self {
+        self.no_verify = true;
+        self
+    }
+
+    pub fn with_verification_api_key(
+        mut self,
+        verification_api_key: impl ToString,
+    ) -> Self {
+        self.verification_api_key = Some(verification_api_key.to_string());
+        self
     }
 
     pub fn with_cwd(mut self, cwd: impl AsRef<Path>) -> Self {
@@ -136,12 +153,7 @@ impl ForgeCreate {
         self
     }
 
-    pub fn with_verify(mut self, verify: bool) -> Self {
-        self.verify = verify;
-        self
-    }
-
-    pub fn with_private_key(mut self, private_key: String) -> Self {
+    pub fn with_private_key(mut self, private_key: PrivateKey) -> Self {
         self.private_key = Some(private_key);
         self
     }
@@ -195,7 +207,7 @@ impl ForgeCreate {
 
         if let Some(private_key) = &self.private_key {
             cmd.arg("--private-key");
-            cmd.arg(private_key);
+            cmd.arg(format!("{private_key:#}"));
         }
 
         if let Some(rpc_url) = &self.rpc_url {
@@ -213,11 +225,17 @@ impl ForgeCreate {
             cmd.arg(constructor_arg);
         }
 
-        if self.verify {
-            cmd.arg("--verify");
+        if let Some(verification_api_key) = &self.verification_api_key {
+            if !self.no_verify {
+                cmd.arg("--verify");
+                cmd.arg("--etherscan-api-key");
+                cmd.arg(verification_api_key);
+            }
         }
 
         cmd.arg("--json");
+
+        info!("cmd = {cmd:#?}");
 
         let output = cmd.output().await?;
 
@@ -227,8 +245,17 @@ impl ForgeCreate {
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
+        let s = strip_non_json(&stdout);
 
-        Ok(serde_json::from_str(&stdout)?)
+        Ok(serde_json::from_str(s)?)
+    }
+}
+
+fn strip_non_json(s: &str) -> &str {
+    if let Some(last_closing_brace) = s.rfind('}') {
+        &s[..=last_closing_brace]
+    } else {
+        &s
     }
 }
 

@@ -1,19 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use clap::Args;
 use ethers::prelude::k256::SecretKey;
-use reqwest::Url;
-
-#[derive(Debug, Clone, Args)]
-#[clap(rename_all = "kebab-case")]
-pub struct DeploymentArgs {
-    #[clap(short, long, env)]
-    pub private_key: PrivateKey,
-
-    #[clap(short, long, env)]
-    pub rpc_url: Url,
-}
 
 #[derive(Debug, Clone)]
 pub struct PrivateKey {
@@ -36,6 +24,15 @@ impl FromStr for PrivateKey {
 
 impl fmt::Display for PrivateKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.key.to_bytes()))
+        if f.alternate() {
+            write!(f, "{}", hex::encode(self.key.to_bytes()))
+        } else {
+            let encoded = hex::encode(self.key.to_bytes());
+
+            let first_4 = &encoded[0..4];
+            let last_4 = &encoded[encoded.len() - 4..];
+
+            write!(f, "{}...{}", first_4, last_4)
+        }
     }
 }

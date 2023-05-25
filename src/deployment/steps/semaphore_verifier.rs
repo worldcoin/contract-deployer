@@ -4,8 +4,9 @@ use ethers::types::Address;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ExternalDep, ForgeCreate, ForgeOutput};
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SemaphoreVerifierDeployment {
@@ -25,11 +26,10 @@ async fn deploy_semaphore_pairing_library(
 
     let contract_spec = ContractSpec::name("Pairing");
 
-    let output = ForgeCreate::new(contract_spec)
+    let output = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_override_nonce(context.next_nonce())
-        .with_rpc_url(context.args.rpc_url.to_string())
+        .no_verify()
         .run()
         .await?;
 
@@ -49,16 +49,15 @@ async fn deploy_semaphore_verifier(
 
     let contract_spec = ContractSpec::name("SemaphoreVerifier");
 
-    let output = ForgeCreate::new(contract_spec)
+    let output = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .with_external_dep(ExternalDep::path_name_address(
             "./lib/semaphore/packages/contracts/contracts/base/Pairing.sol",
             "Pairing",
             pairing_address,
         ))
+        .no_verify()
         .run()
         .await?;
 

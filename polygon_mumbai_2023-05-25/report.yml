@@ -1,0 +1,89 @@
+config:
+  groups:
+    1:
+      tree_depth: 16
+      batch_sizes:
+      - 3
+    0:
+      tree_depth: 16
+      batch_sizes:
+      - 3
+  misc:
+    initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+verifiers:
+  verifiers:
+    ? - 16
+      - 3
+    : deployment:
+        deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+        deployedTo: 0x3ee482929851dcb2ed18fd37ec8f896745b894c3
+        transactionHash: 0x87df7e5a347ec837e917d0ba5348bb8d92b07bb0b891971c0720d28b7afdec92
+lookup_tables:
+  groups:
+    1:
+      insert:
+        deployment:
+          deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+          deployedTo: 0xc33b9919234096295f0e8db4066a5c7e7057e050
+          transactionHash: 0xeb32554075198ad2e02e5649716dba555b7fa17da223344170935a0b4ecb1899
+        entries:
+          3: 0x3ee482929851dcb2ed18fd37ec8f896745b894c3
+      update:
+        deployment:
+          deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+          deployedTo: 0x3788954d780cfc2bef3d4e24afe6ec3099dfed03
+          transactionHash: 0x03316fc56c1071bdfaf9d828892bb145253f7e8029dc0746cc14f1fff1015256
+    0:
+      insert:
+        deployment:
+          deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+          deployedTo: 0x960f8b87f49857ace79c1beb365a136fad7253e6
+          transactionHash: 0x52298bb2834bce6e42f83f129674341080f4bff7265d6d27bc66af750a615d74
+        entries:
+          3: 0x3ee482929851dcb2ed18fd37ec8f896745b894c3
+      update:
+        deployment:
+          deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+          deployedTo: 0xef63dc249527cc294fcaea6c592563d2a44cf65d
+          transactionHash: 0x468e5a9f7bf2653900c40eafbbc8f632c0d9c1c5c461252e445095e1bc2f3ada
+semaphore_verifier:
+  verifier_deployment:
+    deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+    deployedTo: 0x20aebe3c03cdbe60d50e5ca60e60a804b1291721
+    transactionHash: 0xec4acb5709d65a92bc8ace8695335f3d6b7276b76d93a68227f82f006d782899
+  pairing_deployment:
+    deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+    deployedTo: 0x4db6a866ce37d5ee993cb89eca2c28437e307a0c
+    transactionHash: 0x93cc7f98e5b773b104783ab84d1b339a29bf7a5e68fe27d74fbb88ff1aa7c07a
+identity_managers:
+  groups:
+    1:
+      impl_v1_deployment:
+        deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+        deployedTo: 0x186fd362821c9ff0022fe234dec9587ea776d681
+        transactionHash: 0xdddfd02e97b8b3f30a4e0e913c311167482d4c058860c0cb9da716bfaedd6a29
+      proxy_deployment:
+        deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+        deployedTo: 0xe1c909d6e0f207a0b11390905eaf59d0f9218e1c
+        transactionHash: 0x22232d035097782ed0178111fd310d4b386b83f395df9b34db14830926047e88
+    0:
+      impl_v1_deployment:
+        deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+        deployedTo: 0x003ca3e7b5ab91e27f25da423207d0954999958b
+        transactionHash: 0x10a1d681b21c9048674a35358be93ea9628be41fc960d40e9c8bcf8c7146871f
+      proxy_deployment:
+        deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+        deployedTo: 0xccbb8f78ac9ab9dea457dd8f558b753e48cad2b5
+        transactionHash: 0x7c1ac924b5631ca396da268655622e7ebad08a2780144030895e1633a4d16b90
+world_id_router:
+  impl_v1_deployment:
+    deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+    deployedTo: 0x4f5a2cf9a4eada9d30c8205c4fd68666a89b80b1
+    transactionHash: 0x7e0d0ee3a13dcf382357ed5d4e1b9e83d2521c993d714b894c2e1ee2b0d7c0bf
+  proxy_deployment:
+    deployer: 0x4cb90ba760789584793ed089a6d39efc330ee4f5
+    deployedTo: 0xb1af4ae3ddfc3ce28fe73cddcfe33d779713913f
+    transactionHash: 0x596d0d3b0bc4290e014a0692ca118eb3855994a56ebaa04148eaa101d879ea80
+  entries:
+    0: 0xccbb8f78ac9ab9dea457dd8f558b753e48cad2b5
+    1: 0xe1c909d6e0f207a0b11390905eaf59d0f9218e1c

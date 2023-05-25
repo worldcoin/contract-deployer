@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 use crate::config::Config;
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ForgeCreate, ForgeOutput};
 use crate::types::{BatchSize, TreeDepth};
-use crate::DeploymentContext;
 
 const MTB_BIN: &str = "mtb";
 const KEYS_DIR: &str = "keys";
@@ -200,12 +200,11 @@ pub async fn deploy_verifier_contract(
     let contract_spec =
         ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
-    let output = ForgeCreate::new(contract_spec)
+    let output = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
-        .with_override_nonce(context.next_nonce())
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
+        .no_verify()
         .run()
         .await?;
 

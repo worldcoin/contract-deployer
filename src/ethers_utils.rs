@@ -8,7 +8,7 @@ use ethers::types::{Address, Eip1559TransactionRequest};
 use eyre::{bail, Context, ContextCompat};
 
 use crate::common_keys::RpcSigner;
-use crate::DeploymentContext;
+use crate::deployment::DeploymentContext;
 
 pub struct Transaction<'a, T> {
     context: &'a DeploymentContext,

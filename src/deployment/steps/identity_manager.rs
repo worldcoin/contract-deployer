@@ -7,13 +7,14 @@ use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use super::lookup_tables::LookupTables;
+use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::deployment::DeploymentContext;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
-use crate::lookup_tables::LookupTables;
-use crate::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::types::GroupId;
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct WorldIDIdentityManagersDeployment {
@@ -26,7 +27,7 @@ pub struct WorldIdIdentityManagerDeployment {
     pub proxy_deployment: ForgeOutput,
 }
 
-#[instrument(skip(context, config))]
+#[instrument(skip_all)]
 async fn deploy_world_id_identity_manager_v1_for_group(
     context: &DeploymentContext,
     config: &Config,
@@ -49,11 +50,9 @@ async fn deploy_world_id_identity_manager_v1_for_group(
     let identity_manager_spec = ContractSpec::name("WorldIDIdentityManager");
     let impl_spec = ContractSpec::name("WorldIDIdentityManagerImplV1");
 
-    let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
+    let impl_v1_deployment = context
+        .forge_create(impl_spec.clone())
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .run()
         .await?;
 
@@ -91,11 +90,9 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         ),
     )?;
 
-    let proxy_deployment = ForgeCreate::new(identity_manager_spec)
+    let proxy_deployment = context
+        .forge_create(identity_manager_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)
         .run()

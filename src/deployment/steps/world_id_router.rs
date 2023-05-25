@@ -7,14 +7,15 @@ use eyre::{Context as _, ContextCompat};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use super::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::common_keys::RpcSigner;
+use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{
     ContractSpec, ForgeCreate, ForgeInspectAbi, ForgeOutput,
 };
-use crate::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::types::GroupId;
-use crate::{Config, DeploymentContext};
+use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {
@@ -35,11 +36,9 @@ async fn deploy_world_id_router_v1(
     let contract_spec = ContractSpec::name("WorldIDRouter");
     let impl_spec = ContractSpec::name("WorldIDRouterImplV1");
 
-    let impl_v1_deployment = ForgeCreate::new(impl_spec.clone())
+    let impl_v1_deployment = context
+        .forge_create(impl_spec.clone())
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .run()
         .await?;
 
@@ -52,11 +51,9 @@ async fn deploy_world_id_router_v1(
 
     let call_data = encode_function_data(initialize_func, first_group_address)?;
 
-    let proxy_deployment = ForgeCreate::new(contract_spec)
+    let proxy_deployment = context
+        .forge_create(contract_spec)
         .with_cwd("./world-id-contracts")
-        .with_private_key(context.args.private_key.to_string())
-        .with_rpc_url(context.args.rpc_url.to_string())
-        .with_override_nonce(context.next_nonce())
         .with_constructor_arg(format!("{:?}", impl_v1_deployment.deployed_to))
         .with_constructor_arg(call_data)
         .run()
@@ -131,6 +128,35 @@ async fn add_group_route(
     Ok(())
 }
 
+#[instrument(skip(context))]
+async fn remove_group_route(
+    context: &DeploymentContext,
+    world_id_router_address: Address,
+    group_id: GroupId,
+) -> eyre::Result<()> {
+    let impl_spec = ContractSpec::name("WorldIDRouterImplV1");
+
+    let impl_abi = ForgeInspectAbi::new(impl_spec.clone())
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
+
+    let signer = context.dep_map.get::<RpcSigner>().await;
+
+    let tx = TransactionBuilder::default()
+        .signer(signer.clone())
+        .abi(impl_abi.clone())
+        .function_name("disableGroup")
+        .args(group_id.0 as u64)
+        .to(world_id_router_address)
+        .context(context)
+        .build()?;
+
+    tx.send().await?;
+
+    Ok(())
+}
+
 #[instrument(name = "world_id_router", skip_all)]
 pub async fn deploy(
     context: Arc<DeploymentContext>,
@@ -152,7 +178,6 @@ pub async fn deploy(
     let mut group_ids: Vec<_> = config.groups.keys().copied().collect();
     group_ids.sort();
 
-    // TODO: Add removal option
     for group_id in group_ids {
         let group_identity_manager_address = identity_managers
             .groups
@@ -187,6 +212,23 @@ pub async fn deploy(
             world_id_router_deployment
                 .entries
                 .insert(group_id, group_identity_manager_address);
+        }
+
+        let deployment_group_ids: Vec<_> =
+            world_id_router_deployment.entries.keys().copied().collect();
+        for deployment_group_id in deployment_group_ids {
+            if !config.groups.contains_key(&deployment_group_id) {
+                remove_group_route(
+                    context.as_ref(),
+                    world_id_router_deployment.proxy_deployment.deployed_to,
+                    deployment_group_id,
+                )
+                .await?;
+
+                world_id_router_deployment
+                    .entries
+                    .remove(&deployment_group_id);
+            }
         }
     }
 
