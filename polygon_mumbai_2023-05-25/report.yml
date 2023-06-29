@@ -1,10 +1,10 @@
 config:
   groups:
-    1:
+    0:
       tree_depth: 16
       batch_sizes:
       - 3
-    0:
+    1:
       tree_depth: 16
       batch_sizes:
       - 3
@@ -43,21 +43,21 @@ semaphore_verifier:
     address: 0x4db6a866ce37d5ee993cb89eca2c28437e307a0c
 identity_managers:
   groups:
-    1:
-      impl_v1_deployment:
-        address: 0x186fd362821c9ff0022fe234dec9587ea776d681
-      proxy_deployment:
-        address: 0xe1c909d6e0f207a0b11390905eaf59d0f9218e1c
     0:
       impl_v1_deployment:
         address: 0x003ca3e7b5ab91e27f25da423207d0954999958b
       proxy_deployment:
         address: 0xccbb8f78ac9ab9dea457dd8f558b753e48cad2b5
+    1:
+      impl_v1_deployment:
+        address: 0x186fd362821c9ff0022fe234dec9587ea776d681
+      proxy_deployment:
+        address: 0xe1c909d6e0f207a0b11390905eaf59d0f9218e1c
 world_id_router:
   impl_v1_deployment:
     address: 0x4f5a2cf9a4eada9d30c8205c4fd68666a89b80b1
   proxy_deployment:
     address: 0xb1af4ae3ddfc3ce28fe73cddcfe33d779713913f
   entries:
-    0: 0xccbb8f78ac9ab9dea457dd8f558b753e48cad2b5
     1: 0xe1c909d6e0f207a0b11390905eaf59d0f9218e1c
+    0: 0xccbb8f78ac9ab9dea457dd8f558b753e48cad2b5
