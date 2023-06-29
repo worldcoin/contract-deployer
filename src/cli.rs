@@ -33,6 +33,6 @@ pub struct Args {
     pub etherscan_api_key: Option<String>,
 
     /// Cache directory
-    #[clap(short, long, env, default_value = ".cache")]
+    #[clap(long, env, default_value = ".cache")]
     pub cache_dir: PathBuf,
 }
