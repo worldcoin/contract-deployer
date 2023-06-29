@@ -1,0 +1,13 @@
+groups:
+  1:
+    tree_depth: 30
+    batch_sizes:
+    - 100
+    - 1000
+  0:
+    tree_depth: 30
+    batch_sizes:
+    - 100
+    - 1000
+misc:
+  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
