@@ -117,7 +117,7 @@ async fn add_group_route(
         .signer(signer.clone())
         .abi(impl_abi.clone())
         .function_name("addGroup")
-        .args((group_id.0 as u64, new_target_address))
+        .args(new_target_address)
         .to(world_id_router_address)
         .context(context)
         .build()?;
