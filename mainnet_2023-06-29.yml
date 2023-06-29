@@ -1,13 +1,14 @@
 groups:
-  1:
+  1: # Orb
     tree_depth: 30
     batch_sizes:
     - 100
     - 1000
-  0:
+  0: # Phone
     tree_depth: 30
     batch_sizes:
     - 100
-    - 1000
 misc:
   initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+# world_id_contract_commit_hash: '2e2d25f1c45b07657e8830fb85a5221941aac68e'
