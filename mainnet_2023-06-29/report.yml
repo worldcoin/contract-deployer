@@ -1,0 +1,71 @@
+config:
+  groups:
+    1:
+      tree_depth: 30
+      batch_sizes:
+      - 100
+      - 1000
+    0:
+      tree_depth: 30
+      batch_sizes:
+      - 100
+      - 1000
+  misc:
+    initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+verifiers:
+  verifiers:
+    ? - 30
+      - 100
+    : deployment:
+        address: 0xfea422d14805b902486ff7fb6b682f66532d8237
+    ? - 30
+      - 1000
+    : deployment:
+        address: 0xb82cb716b973d42e34575117cb244114d01f7ac0
+lookup_tables:
+  groups:
+    0:
+      insert:
+        deployment:
+          address: 0x6bfa9edb870541f94b14867e456ff1fba7a51534
+        entries:
+          100: 0xfea422d14805b902486ff7fb6b682f66532d8237
+          1000: 0xb82cb716b973d42e34575117cb244114d01f7ac0
+      update:
+        deployment:
+          address: 0xa07cd81287d599e0ce5dce226ac23b8ac6cfc92a
+    1:
+      insert:
+        deployment:
+          address: 0xb35e3fee72acbfc3cbf4e6bbfcaec2953297d7a4
+        entries:
+          100: 0xfea422d14805b902486ff7fb6b682f66532d8237
+          1000: 0xb82cb716b973d42e34575117cb244114d01f7ac0
+      update:
+        deployment:
+          address: 0x923020417aa6a16a457d1ab7ec1d53d6aacbb827
+semaphore_verifier:
+  verifier_deployment:
+    address: 0xc2804d5de00466cb6a1c0f2b50c3c3ff10a544d1
+  pairing_deployment:
+    address: 0xa587ddd4fa84112fce7213cba9fb9be8e71f15b3
+identity_managers:
+  groups:
+    0:
+      impl_v1_deployment:
+        address: 0x11e49b48439a45f95976b064d52d569c22b6b382
+      proxy_deployment:
+        address: 0x74227b892879ea085f3542dea5a664bd1acb0393
+    1:
+      impl_v1_deployment:
+        address: 0x6b4e6d76a6e31f093460eca45876d323e6daacb3
+      proxy_deployment:
+        address: 0x8c2779751fbbd107f78438d0702521e1f2be66c4
+world_id_router:
+  impl_v1_deployment:
+    address: 0x590467e74bcf40357630113ae493db74487493b0
+  proxy_deployment:
+    address: 0xc49a90723ff7f4d68e85d8605fda808cd1b4e7ab
+  entries:
+    0: 0x74227b892879ea085f3542dea5a664bd1acb0393
+    1: 0x8c2779751fbbd107f78438d0702521e1f2be66c4
