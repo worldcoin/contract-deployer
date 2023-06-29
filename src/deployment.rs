@@ -5,8 +5,11 @@ use std::sync::Arc;
 use ethers::prelude::SignerMiddleware;
 use ethers::providers::{Middleware, Provider};
 use ethers::signers::{Signer, Wallet};
+use eyre::ContextCompat;
 
 use self::steps::assemble_report::REPORT_PATH;
+use self::steps::identity_manager::WorldIDIdentityManagersDeployment;
+use self::steps::lookup_tables::LookupTables;
 use self::steps::*;
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
@@ -68,42 +71,96 @@ pub async fn run_deployment(cmd: Cmd) -> eyre::Result<()> {
     let context = Arc::new(context);
     let config = Arc::new(config);
 
+    let mut lookup_tables = LookupTables::default();
+    let mut semaphore_verifier = None;
+    let mut identity_manager = WorldIDIdentityManagersDeployment::default();
+    let mut world_id_router = None;
+
     let insertion_verifiers =
         insertion_verifier::deploy(context.clone(), config.clone()).await?;
 
-    let lookup_tables = lookup_tables::deploy(
+    assemble_report::assemble_report(
+        context.clone(),
+        config.clone(),
+        &insertion_verifiers,
+        &lookup_tables,
+        semaphore_verifier.as_ref(),
+        &identity_manager,
+        world_id_router.as_ref(),
+    )
+    .await?;
+
+    lookup_tables = lookup_tables::deploy(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
     )
     .await?;
 
-    let semaphore_verifier =
-        semaphore_verifier::deploy(context.clone(), config.clone()).await?;
-
-    let identity_manager = identity_manager::deploy(
+    assemble_report::assemble_report(
         context.clone(),
         config.clone(),
-        &semaphore_verifier,
+        &insertion_verifiers,
+        &lookup_tables,
+        semaphore_verifier.as_ref(),
+        &identity_manager,
+        world_id_router.as_ref(),
+    )
+    .await?;
+
+    semaphore_verifier = Some(
+        semaphore_verifier::deploy(context.clone(), config.clone()).await?,
+    );
+
+    assemble_report::assemble_report(
+        context.clone(),
+        config.clone(),
+        &insertion_verifiers,
+        &lookup_tables,
+        semaphore_verifier.as_ref(),
+        &identity_manager,
+        world_id_router.as_ref(),
+    )
+    .await?;
+
+    identity_manager = identity_manager::deploy(
+        context.clone(),
+        config.clone(),
+        semaphore_verifier
+            .as_ref()
+            .context("Missing semaphore verifier")?,
         &lookup_tables,
     )
     .await?;
 
-    let world_id_router = world_id_router::deploy(
+    assemble_report::assemble_report(
         context.clone(),
         config.clone(),
+        &insertion_verifiers,
+        &lookup_tables,
+        semaphore_verifier.as_ref(),
         &identity_manager,
+        world_id_router.as_ref(),
     )
     .await?;
+
+    world_id_router = Some(
+        world_id_router::deploy(
+            context.clone(),
+            config.clone(),
+            &identity_manager,
+        )
+        .await?,
+    );
 
     assemble_report::assemble_report(
         context,
         config,
         &insertion_verifiers,
         &lookup_tables,
-        &semaphore_verifier,
+        semaphore_verifier.as_ref(),
         &identity_manager,
-        &world_id_router,
+        world_id_router.as_ref(),
     )
     .await?;
 

@@ -20,17 +20,17 @@ pub async fn assemble_report(
     config: Arc<Config>,
     verifiers: &InsertionVerifiers,
     lookup_tables: &LookupTables,
-    semaphore_verifier: &SemaphoreVerifierDeployment,
+    semaphore_verifier: Option<&SemaphoreVerifierDeployment>,
     identity_managers: &WorldIDIdentityManagersDeployment,
-    world_id_router_deployment: &WorldIdRouterDeployment,
+    world_id_router_deployment: Option<&WorldIdRouterDeployment>,
 ) -> eyre::Result<()> {
     let report = Report {
         config: config.as_ref().clone(),
         verifiers: verifiers.clone(),
         lookup_tables: lookup_tables.clone(),
-        semaphore_verifier: Some(semaphore_verifier.clone()),
+        semaphore_verifier: semaphore_verifier.cloned(),
         identity_managers: identity_managers.clone(),
-        world_id_router: Some(world_id_router_deployment.clone()),
+        world_id_router: world_id_router_deployment.cloned(),
     };
 
     let path = context.deployment_dir.join(REPORT_PATH);
