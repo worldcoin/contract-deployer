@@ -2,6 +2,7 @@ groups:
   1: # Orb
     tree_depth: 30
     batch_sizes:
+    - 10
     - 100
     - 1000
   0: # Phone

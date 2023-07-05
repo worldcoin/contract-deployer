@@ -3,6 +3,7 @@ config:
     1:
       tree_depth: 30
       batch_sizes:
+      - 10
       - 100
       - 1000
     0:
@@ -14,25 +15,19 @@ config:
 verifiers:
   verifiers:
     ? - 30
+      - 10
+    : deployment:
+        address: 0xa8710b3ba329fc7b80a49f7c82e889d1340c99fb
+    ? - 30
       - 1000
     : deployment:
-        address: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
+        address: 0xed5dc9cdb270818dcec0784bbdc8094082f0ebcb
     ? - 30
       - 100
     : deployment:
-        address: 0x047ee5313f98e26cc8177fa38877cb36292d2364
+        address: 0x42af76fb754ea23769ad337bbc4456fd0893552f
 lookup_tables:
   groups:
-    1:
-      insert:
-        deployment:
-          address: 0x4055b6d4018e92e4d000865e61e87b57a4e5ab49
-        entries:
-          1000: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
-          100: 0x047ee5313f98e26cc8177fa38877cb36292d2364
-      update:
-        deployment:
-          address: 0x17b354dd2595411ff79041f930e491a4df39a278
     0:
       insert:
         deployment:
@@ -42,6 +37,17 @@ lookup_tables:
       update:
         deployment:
           address: 0x379c62556c665f1edd25f2c2a0f76bc70a53b2e4
+    1:
+      insert:
+        deployment:
+          address: 0x4055b6d4018e92e4d000865e61e87b57a4e5ab49
+        entries:
+          1000: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
+          100: 0x047ee5313f98e26cc8177fa38877cb36292d2364
+          10: 0xa8710b3ba329fc7b80a49f7c82e889d1340c99fb
+      update:
+        deployment:
+          address: 0x17b354dd2595411ff79041f930e491a4df39a278
 semaphore_verifier:
   verifier_deployment:
     address: 0xcdbbcd1cb0b642f8e324ab29c73a967b0c80bad5
