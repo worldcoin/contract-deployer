@@ -15,17 +15,17 @@ config:
 verifiers:
   verifiers:
     ? - 30
-      - 10
-    : deployment:
-        address: 0xa8710b3ba329fc7b80a49f7c82e889d1340c99fb
-    ? - 30
       - 1000
     : deployment:
-        address: 0xed5dc9cdb270818dcec0784bbdc8094082f0ebcb
+        address: 0xf07d3efadd82a1f0b4c5cc3476806d9a170147ba
     ? - 30
       - 100
     : deployment:
-        address: 0x42af76fb754ea23769ad337bbc4456fd0893552f
+        address: 0x03ad26786469c1f12595b0309d151fe928db6c4d
+    ? - 30
+      - 10
+    : deployment:
+        address: 0x6e37bab9d23bd8bdb42b773c58ae43c6de43a590
 lookup_tables:
   groups:
     0:
@@ -42,9 +42,9 @@ lookup_tables:
         deployment:
           address: 0x4055b6d4018e92e4d000865e61e87b57a4e5ab49
         entries:
-          1000: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
-          100: 0x047ee5313f98e26cc8177fa38877cb36292d2364
-          10: 0xa8710b3ba329fc7b80a49f7c82e889d1340c99fb
+          10: 0x6e37bab9d23bd8bdb42b773c58ae43c6de43a590
+          100: 0x03ad26786469c1f12595b0309d151fe928db6c4d
+          1000: 0xf07d3efadd82a1f0b4c5cc3476806d9a170147ba
       update:
         deployment:
           address: 0x17b354dd2595411ff79041f930e491a4df39a278
@@ -55,16 +55,16 @@ semaphore_verifier:
     address: 0x57f928158c3ee7cdad1e4d8642503c4d0201f611
 identity_managers:
   groups:
-    1:
-      impl_v1_deployment:
-        address: 0xa3cd15ebed6075e33a54483c59818bc43d57c556
-      proxy_deployment:
-        address: 0x316350d3ec608ffc30b01dcb7475de1c676ce910
     0:
       impl_v1_deployment:
         address: 0x665252cdae50cf9cecebe61c25b1649bb06110ac
       proxy_deployment:
         address: 0x3310846ee4250603e6ac6e4904e7e1667a1b248a
+    1:
+      impl_v1_deployment:
+        address: 0xa3cd15ebed6075e33a54483c59818bc43d57c556
+      proxy_deployment:
+        address: 0x316350d3ec608ffc30b01dcb7475de1c676ce910
 world_id_router:
   impl_v1_deployment:
     address: 0x8c7b929f59267dff86392f08d03df40f04cf50b3
