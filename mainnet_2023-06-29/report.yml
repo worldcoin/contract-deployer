@@ -64,10 +64,10 @@ identity_managers:
       impl_v1_deployment:
         address: 0xa3cd15ebed6075e33a54483c59818bc43d57c556
       proxy_deployment:
-        address: 0x316350d3ec608ffc30b01dcb7475de1c676ce910
+        address: 0xf7134CE138832c1456F2a91D64621eE90c2bddEa
 world_id_router:
   impl_v1_deployment:
-    address: 0x8c7b929f59267dff86392f08d03df40f04cf50b3
+    address: 0x31b0e17db1D02B079177698dF2eD7037Fc1d0B2c
   proxy_deployment:
     address: 0x163b09b4fe21177c455d850bd815b6d583732432
   entries:
