@@ -40,6 +40,45 @@ Optional variables:
 - `ETHERSCAN_API_KEY`: Your etherscan API key.
 - `CACHE_DIR`: Cache directory. Default is `.cache`.
 
+## Configuration file
+
+The configuration file, specified via the `CONFIG` env var is structured YAML and contains two main sections: `groups` and `misc`.
+
+An example configuration file looks like this:
+```yaml
+groups:
+  1: # Orb
+    tree_depth: 30
+    batch_sizes:
+    - 10
+    - 100
+    - 1000
+  0: # Phone
+    tree_depth: 30
+    batch_sizes:
+    - 100
+misc:
+  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+# world_id_contract_commit_hash: '2e2d25f1c45b07657e8830fb85a5221941aac68e'
+```
+
+### Groups
+
+The `groups` section is a map where each key is a `GroupId` and the value is a `GroupConfig`. Each `GroupConfig` has two properties: `tree_depth` and `batch_sizes`.
+
+- `tree_depth` (TreeDepth): This is a numerical value representing the depth of the tree for the group. In the provided example, both groups have a tree depth of 30.
+
+- `batch_sizes` (Vec<BatchSize>): This is a list of batch sizes for the group. In the provided example, the group with `GroupId` 1 has batch sizes of 10, 100, and 1000, while the group with `GroupId` 0 has a batch size of 100.
+
+### Misc
+
+The `misc` section contains miscellaneous configuration options. Currently, it only contains one property: `initial_leaf_value`.
+
+- `initial_leaf_value` (H256): This is a hexadecimal value representing the initial leaf value. In the provided example, the initial leaf value is '0x0000000000000000000000000000000000000000000000000000000000000000'.
+
+Remember, comments can be added anywhere in the YAML file using the `#` symbol. For example, in the provided configuration, comments are used to label the groups as 'Orb' and 'Phone'. This can be particularly useful for providing additional context or explanations for your configuration options.
+
 ## 🚀 Usage
 
 To launch the tool, use the following command:
@@ -55,3 +94,15 @@ cargo run -- -h
 ```
 
 Happy deploying! 🎉
+
+## 🚀 Advanced Usage
+
+### Custom keys
+
+The deployer will download the semaphore mtb binary and generate brand new keys automatically, as specified in the deployment configuration.
+
+However it's possible to supplant custom keys (and even verifier contracts) - the deployer will not download generate keys or verifier contracts which are already present.
+
+So to provide custom keys, make sure to place them in the cache directory (by default `.cache` under the deployment directory) and then:
+1. Under `keys` for keys - keys filenames are expected to have the following format `keys_{tree_depth}_{batch_size}`
+2. Under `verifier_contracts` for contracts - contract filenames are expected to have the following format `verifier_{batch_size}_{tree_depth}.sol`
