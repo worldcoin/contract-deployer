@@ -1,0 +1,9 @@
+# A "fake" deployment for the prod phone sequencer
+groups:
+  0:
+    tree_depth: 30
+    batch_sizes:
+    - 100
+    initial_root: '0x0D8BA8FA3331E20E10B9D8723FA6251D93223091A06A092F6296C5F7C5527533'
+misc:
+  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
