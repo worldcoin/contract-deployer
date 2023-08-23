@@ -9,6 +9,7 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::config::GroupConfig;
 use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
@@ -72,7 +73,12 @@ async fn deploy_world_id_identity_manager_v1_for_group(
 
     let initialize_func = impl_abi.function("initialize")?;
 
-    let initial_root_u256 = U256::from_big_endian(initial_root.as_bytes());
+    let initial_root_u256 =
+        if let Some(initial_root) = group_config.initial_root {
+            U256::from(initial_root.0)
+        } else {
+            U256::from_big_endian(initial_root.as_bytes())
+        };
 
     let call_data = encode_function_data(
         initialize_func,

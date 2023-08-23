@@ -20,6 +20,7 @@ pub fn add_group() -> eyre::Result<(GroupId, GroupConfig)> {
     let group = GroupConfig {
         tree_depth,
         batch_sizes,
+        initial_root: None,
     };
 
     Ok((group_id, group))

@@ -21,6 +21,9 @@ pub struct MiscConfig {
 pub struct GroupConfig {
     pub tree_depth: TreeDepth,
     pub batch_sizes: Vec<BatchSize>,
+    /// Allows overriding the initial root constructor arg
+    #[serde(default)]
+    pub initial_root: Option<H256>,
 }
 
 impl Config {
