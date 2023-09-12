@@ -11,20 +11,19 @@ use self::steps::assemble_report::REPORT_PATH;
 use self::steps::identity_manager::WorldIDIdentityManagersDeployment;
 use self::steps::lookup_tables::LookupTables;
 use self::steps::*;
+use crate::cli::Args;
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
 use crate::dependency_map::DependencyMap;
 use crate::report::Report;
 use crate::serde_utils;
 
-pub mod cmd;
 pub mod deployment_context;
 pub mod steps;
 
-pub use self::cmd::Cmd;
 pub use self::deployment_context::DeploymentContext;
 
-pub async fn run_deployment(cmd: Cmd) -> eyre::Result<()> {
+pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
     let deployment_dir = PathBuf::from(cmd.deployment_name);
