@@ -9,7 +9,6 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
-use crate::config::GroupConfig;
 use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
@@ -21,9 +20,12 @@ pub struct WorldIDIdentityManagersDeployment {
     pub groups: HashMap<GroupId, WorldIdIdentityManagerDeployment>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WorldIdIdentityManagerDeployment {
-    pub impl_v1_deployment: ContractDeployment,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impl_v1_deployment: Option<ContractDeployment>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impl_v2_deployment: Option<ContractDeployment>,
     pub proxy_deployment: ContractDeployment,
 }
 
@@ -38,8 +40,23 @@ async fn deploy_world_id_identity_manager_v1_for_group(
     if let Some(deployment) =
         context.report.identity_managers.groups.get(&group_id)
     {
-        info!("Existing world id identity manager deployment found for group {:?}. Skipping.", group_id);
-        return Ok(deployment.clone());
+        if deployment.impl_v1_deployment.is_some()
+            && deployment.impl_v2_deployment.is_none()
+        {
+            info!("Existing world id identity manager deployment found for group {:?}. Upgrading to v2.", group_id);
+            return upgrade_v1_to_v2(
+                context,
+                config,
+                group_id,
+                semaphore_verifier_deployment,
+                lookup_tables,
+                deployment,
+            )
+            .await;
+        } else {
+            info!("Existing world id identity manager deployment found for group {:?}. Skipping.", group_id);
+            return Ok(deployment.clone());
+        }
     }
 
     let group_config = config
@@ -85,8 +102,18 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         (
             group_config.tree_depth.0 as u64,
             initial_root_u256,
-            group_lookup_tables.insert.deployment.address,
-            group_lookup_tables.update.deployment.address,
+            group_lookup_tables
+                .insert
+                .as_ref()
+                .expect("TODO")
+                .deployment
+                .address,
+            group_lookup_tables
+                .update
+                .as_ref()
+                .expect("TODO")
+                .deployment
+                .address,
             semaphore_verifier_deployment.verifier_deployment.address,
             false,
             Address::default(), // TODO: processedStateBridgeAddress
@@ -102,9 +129,69 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         .await?;
 
     Ok(WorldIdIdentityManagerDeployment {
-        impl_v1_deployment: impl_v1_deployment.into(),
+        impl_v1_deployment: Some(impl_v1_deployment.into()),
+        impl_v2_deployment: None,
         proxy_deployment: proxy_deployment.into(),
     })
+}
+
+async fn upgrade_v1_to_v2(
+    context: &DeploymentContext,
+    config: &Config,
+    group_id: GroupId,
+    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
+    lookup_tables: &LookupTables,
+    v1_deployment: &WorldIdIdentityManagerDeployment,
+) -> eyre::Result<WorldIdIdentityManagerDeployment> {
+    let identity_manager_spec = ContractSpec::name("WorldIDIdentityManager");
+    let impl_v2_spec = ContractSpec::name("WorldIDIdentityManagerImplV2");
+
+    let impl_v2_deployment = context
+        .forge_create(impl_v2_spec.clone())
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
+
+    let impl_abi = ForgeInspectAbi::new(impl_v2_spec.clone())
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
+
+    todo!()
+}
+
+async fn initialize_v2(
+    context: &DeploymentContext,
+    config: &Config,
+    group_id: GroupId,
+    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
+    lookup_tables: &LookupTables,
+) -> eyre::Result<()> {
+    let impl_v2_spec = ContractSpec::name("WorldIDIdentityManagerImplV2");
+
+    let impl_abi = ForgeInspectAbi::new(impl_v2_spec.clone())
+        .with_cwd("./world-id-contracts")
+        .run()
+        .await?;
+
+    let initialize_v2_func = impl_abi.function("initializeV2")?;
+
+    let group_lookup_tables =
+        lookup_tables.groups.get(&group_id).with_context(|| {
+            format!("Missing lookup tables for group {group_id}")
+        })?;
+
+    let call_data = encode_function_data(
+        initialize_v2_func,
+        group_lookup_tables
+            .delete
+            .as_ref()
+            .expect("TODO")
+            .deployment
+            .address,
+    )?;
+
+    Ok(())
 }
 
 pub async fn deploy(
@@ -129,4 +216,36 @@ pub async fn deploy(
     }
 
     Ok(WorldIDIdentityManagersDeployment { groups })
+}
+
+#[cfg(test)]
+mod tests {
+    use ethers::types::H160;
+    use indoc::indoc;
+
+    use super::*;
+
+    const ONLY_PROXY_DEPLOYMENT: &'static str = indoc! { r#"
+        proxy_deployment:
+          address: '0x0000000000000000000000000000000000000000'
+    "# };
+
+    #[test]
+    fn only_proxy() {
+        let actual: WorldIdIdentityManagerDeployment =
+            serde_yaml::from_str(ONLY_PROXY_DEPLOYMENT).unwrap();
+
+        let expected = WorldIdIdentityManagerDeployment {
+            impl_v1_deployment: None,
+            impl_v2_deployment: None,
+            proxy_deployment: ContractDeployment {
+                address: H160::zero(),
+            },
+        };
+
+        let serialized_actual = serde_yaml::to_string(&actual).unwrap();
+
+        assert_eq!(actual, expected);
+        assert_eq!(serialized_actual, ONLY_PROXY_DEPLOYMENT);
+    }
 }
