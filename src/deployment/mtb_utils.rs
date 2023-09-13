@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use strum::EnumString;
+use strum::{Display, EnumString};
 use tracing::instrument;
 
 use crate::config::Config;
@@ -10,7 +10,7 @@ use crate::types::{BatchSize, TreeDepth};
 
 pub const MTB_BIN: &str = "mtb";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString, Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum ProverMode {
     Insertion,
@@ -51,7 +51,7 @@ pub async fn download_semaphore_mtb_binary(
 
     const MTB_RELEASES_URL: &str =
         "https://github.com/worldcoin/semaphore-mtb/releases/download";
-    const MTB_VERSION: &str = "1.0.2";
+    const MTB_VERSION: &str = "1.2.0";
 
     let url = format!("{MTB_RELEASES_URL}/{MTB_VERSION}/mtb-{os}-{arch}");
 
@@ -100,6 +100,8 @@ pub async fn generate_keys(
         }
     };
 
+    let mode_str = mode.to_string();
+
     let keys_file = keys_dir.as_ref().join(filename);
 
     if keys_file.exists() {
@@ -114,6 +116,8 @@ pub async fn generate_keys(
         .arg(batch_size.to_string())
         .arg("--output")
         .arg(&keys_file)
+        .arg("--mode")
+        .arg(&mode_str)
         .spawn()?
         .wait_with_output()
         .await?;
@@ -154,8 +158,6 @@ pub async fn generate_verifier_contract(
 
     let output = tokio::process::Command::new(mtb_binary)
         .arg("export-solidity")
-        .arg("--mode")
-        .arg("deletion")
         .arg("--keys-file")
         .arg(keys_file)
         .arg("--output")
