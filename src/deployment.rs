@@ -101,7 +101,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     )
     .await?;
 
-    let insertion_verifiers = verifiers::deploy(
+    deletion_verifiers = verifiers::deploy(
         context.clone(),
         config.clone(),
         ProverMode::Deletion,
