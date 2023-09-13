@@ -9,7 +9,9 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::common_keys::RpcSigner;
 use crate::deployment::DeploymentContext;
+use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
@@ -88,8 +90,6 @@ async fn deploy_world_id_identity_manager_v1_for_group(
             format!("Missing lookup tables for group {group_id}")
         })?;
 
-    let initialize_func = impl_abi.function("initialize")?;
-
     let initial_root_u256 =
         if let Some(initial_root) = group_config.initial_root {
             U256::from(initial_root.0)
@@ -110,6 +110,8 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         .expect("TODO")
         .deployment
         .address;
+
+    let initialize_func = impl_abi.function("initialize")?;
 
     let call_data = encode_function_data(
         initialize_func,
@@ -146,7 +148,6 @@ async fn upgrade_v1_to_v2(
     lookup_tables: &LookupTables,
     v1_deployment: &WorldIdIdentityManagerDeployment,
 ) -> eyre::Result<WorldIdIdentityManagerDeployment> {
-    let identity_manager_spec = ContractSpec::name("WorldIDIdentityManager");
     let impl_v2_spec = ContractSpec::name("WorldIDIdentityManagerImplV2");
 
     let impl_v2_deployment = context
@@ -160,7 +161,43 @@ async fn upgrade_v1_to_v2(
         .run()
         .await?;
 
-    todo!()
+    let group_lookup_tables =
+        lookup_tables.groups.get(&group_id).with_context(|| {
+            format!("Missing lookup tables for group {group_id}")
+        })?;
+
+    let delete_lookup_table_address = group_lookup_tables
+        .delete
+        .as_ref()
+        .expect("TODO")
+        .deployment
+        .address;
+
+    let initialize_v2_func = impl_abi.function("initializeV2")?;
+
+    let call_data =
+        encode_function_data(initialize_v2_func, delete_lookup_table_address)?;
+
+    let signer = context.dep_map.get::<RpcSigner>().await;
+
+    let tx = TransactionBuilder::default()
+        .signer(signer.clone())
+        .abi(impl_abi.clone())
+        .function_name("upgradeToAndCall")
+        .args((impl_v2_deployment.deployed_to, call_data))
+        .to(v1_deployment.proxy_deployment.address)
+        .context(context)
+        .build()?;
+
+    tx.send().await?;
+
+    Ok(WorldIdIdentityManagerDeployment {
+        // We discard the old impl
+        impl_v1_deployment: None,
+        impl_v2_deployment: Some(impl_v2_deployment.into()),
+        // We preserve the proxy
+        proxy_deployment: v1_deployment.proxy_deployment.clone(),
+    })
 }
 
 #[instrument(skip_all)]
