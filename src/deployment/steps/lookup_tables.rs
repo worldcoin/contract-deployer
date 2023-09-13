@@ -6,7 +6,7 @@ use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument, warn};
 
-use super::insertion_verifier::InsertionVerifiers;
+use super::verifiers::Verifiers;
 use crate::common_keys::RpcSigner;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
@@ -97,7 +97,7 @@ async fn associate_group_batch_size_verifier(
     group_id: GroupId,
     tree_depth: TreeDepth,
     batch_size: BatchSize,
-    verifiers: &InsertionVerifiers,
+    verifiers: &Verifiers,
 ) -> eyre::Result<Address> {
     if let Some(group_verifiers) =
         context.report.lookup_tables.groups.get(&group_id)
@@ -135,7 +135,7 @@ async fn associate_group_batch_size_verifier(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-    verifiers: &InsertionVerifiers,
+    verifiers: &Verifiers,
 ) -> eyre::Result<LookupTables> {
     let mut by_group = HashMap::new();
 
@@ -163,7 +163,7 @@ pub async fn deploy(
         };
 
         let config_batch_sizes: HashSet<_> =
-            group_config.batch_sizes.iter().copied().collect();
+            group_config.insertion_batch_sizes.iter().copied().collect();
         let report_batch_sizes =
             insert.entries.keys().copied().collect::<HashSet<_>>();
 

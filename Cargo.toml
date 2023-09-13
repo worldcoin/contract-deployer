@@ -38,6 +38,7 @@ inquire = "0.6.2"
 color-eyre = "0.6.2"
 tracing-error = "0.2.0"
 derive_more = "0.99.17"
+strum = { version = "0.25.0", features = ["derive"] }
 
 [dev-dependencies]
 indoc = "2.0"
