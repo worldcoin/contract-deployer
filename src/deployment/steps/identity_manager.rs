@@ -97,26 +97,28 @@ async fn deploy_world_id_identity_manager_v1_for_group(
             U256::from_big_endian(initial_root.as_bytes())
         };
 
+    let insert_lookup_table_address = group_lookup_tables
+        .insert
+        .as_ref()
+        .expect("TODO")
+        .deployment
+        .address;
+
+    let update_lookup_table_address = group_lookup_tables
+        .update
+        .as_ref()
+        .expect("TODO")
+        .deployment
+        .address;
+
     let call_data = encode_function_data(
         initialize_func,
         (
             group_config.tree_depth.0 as u64,
             initial_root_u256,
-            group_lookup_tables
-                .insert
-                .as_ref()
-                .expect("TODO")
-                .deployment
-                .address,
-            group_lookup_tables
-                .update
-                .as_ref()
-                .expect("TODO")
-                .deployment
-                .address,
+            insert_lookup_table_address,
+            update_lookup_table_address,
             semaphore_verifier_deployment.verifier_deployment.address,
-            false,
-            Address::default(), // TODO: processedStateBridgeAddress
         ),
     )?;
 
@@ -135,6 +137,7 @@ async fn deploy_world_id_identity_manager_v1_for_group(
     })
 }
 
+#[instrument(skip_all)]
 async fn upgrade_v1_to_v2(
     context: &DeploymentContext,
     config: &Config,
@@ -160,6 +163,7 @@ async fn upgrade_v1_to_v2(
     todo!()
 }
 
+#[instrument(skip_all)]
 async fn initialize_v2(
     context: &DeploymentContext,
     config: &Config,
