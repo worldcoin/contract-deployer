@@ -32,7 +32,7 @@ pub struct WorldIdIdentityManagerDeployment {
 }
 
 #[instrument(skip_all)]
-async fn deploy_world_id_identity_manager_v1_for_group(
+async fn deploy_world_id_identity_manager_for_group(
     context: &DeploymentContext,
     config: &Config,
     group_id: GroupId,
@@ -212,7 +212,7 @@ pub async fn deploy(
     let mut groups = HashMap::new();
 
     for group_id in config.groups.keys().copied() {
-        let group_deployment = deploy_world_id_identity_manager_v1_for_group(
+        let group_deployment = deploy_world_id_identity_manager_for_group(
             context.as_ref(),
             config.as_ref(),
             group_id,
