@@ -124,6 +124,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
         context.clone(),
         config.clone(),
         &insertion_verifiers,
+        &deletion_verifiers,
     )
     .await?;
 

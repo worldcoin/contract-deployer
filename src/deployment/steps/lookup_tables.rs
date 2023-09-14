@@ -8,6 +8,7 @@ use tracing::{info, instrument, warn};
 
 use super::verifiers::Verifiers;
 use crate::common_keys::RpcSigner;
+use crate::config::GroupConfig;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
@@ -99,17 +100,6 @@ async fn associate_group_batch_size_verifier(
     batch_size: BatchSize,
     verifiers: &Verifiers,
 ) -> eyre::Result<Address> {
-    if let Some(group_verifiers) =
-        context.report.lookup_tables.groups.get(&group_id)
-    {
-        if let Some(insert) = group_verifiers.insert.as_ref() {
-            if let Some(verifier_address) = insert.entries.get(&batch_size) {
-                info!("Early return!");
-                return Ok(*verifier_address);
-            }
-        }
-    }
-
     let verifier = verifiers
         .verifiers
         .get(&(tree_depth, batch_size))
@@ -135,7 +125,8 @@ async fn associate_group_batch_size_verifier(
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-    verifiers: &Verifiers,
+    insertion_verifiers: &Verifiers,
+    deletion_verifiers: &Verifiers,
 ) -> eyre::Result<LookupTables> {
     let mut by_group = HashMap::new();
 
@@ -146,7 +137,7 @@ pub async fn deploy(
         by_group.insert(*group, lookup_tables);
     }
 
-    let verifier_abi =
+    let lookup_abi =
         ForgeInspectAbi::new(ContractSpec::name("VerifierLookupTable"))
             .with_cwd("./world-id-contracts")
             .run()
@@ -158,49 +149,57 @@ pub async fn deploy(
 
         let group_id = *group_id;
 
-        let Some(insert) = group.insert.as_ref() else {
-            continue;
-        };
+        let mut insert_updates = HashMap::new();
+        let mut delete_updates = HashMap::new();
 
-        let config_batch_sizes: HashSet<_> =
-            group_config.insertion_batch_sizes.iter().copied().collect();
-        let report_batch_sizes =
-            insert.entries.keys().copied().collect::<HashSet<_>>();
+        if let Some(insert) = group.insert.as_ref() {
+            let config_batch_sizes: HashSet<_> =
+                group_config.insertion_batch_sizes.iter().copied().collect();
 
-        let batch_sizes_to_add_or_update =
-            config_batch_sizes.difference(&report_batch_sizes);
-        let batch_sizes_to_disable =
-            report_batch_sizes.difference(&config_batch_sizes);
-
-        info!("Going to update batch sizes for group {group_id}: {batch_sizes_to_add_or_update:?}");
-        for batch_size_to_disable in batch_sizes_to_disable {
-            warn!("Insertion batch size {batch_size_to_disable} for group {group_id} will not be disabled - remove it manually");
-        }
-
-        let insert_deployment_address = insert.deployment.address;
-
-        drop(insert);
-        drop(group);
-
-        for batch_size in batch_sizes_to_add_or_update {
-            let tree_depth = group_config.tree_depth;
-            let batch_size = *batch_size;
-
-            let address = associate_group_batch_size_verifier(
+            insert_updates = update_lookup_table(
                 context.clone(),
-                verifier_abi.clone(),
-                insert_deployment_address,
+                insertion_verifiers,
                 group_id,
-                tree_depth,
-                batch_size,
-                verifiers,
+                group_config,
+                insert,
+                &config_batch_sizes,
+                &lookup_abi,
             )
             .await?;
+        }
 
-            let group = by_group.get_mut(&group_id).unwrap();
+        if let Some(delete) = group.delete.as_ref() {
+            let config_batch_sizes: HashSet<_> =
+                group_config.deletion_batch_sizes.iter().copied().collect();
 
-            group
+            delete_updates = update_lookup_table(
+                context.clone(),
+                deletion_verifiers,
+                group_id,
+                group_config,
+                delete,
+                &config_batch_sizes,
+                &lookup_abi,
+            )
+            .await?;
+        }
+
+        for ((group_id, batch_size), address) in insert_updates {
+            by_group
+                .get_mut(&group_id)
+                .unwrap()
                 .insert
+                .as_mut()
+                .unwrap()
+                .entries
+                .insert(batch_size, address);
+        }
+
+        for ((group_id, batch_size), address) in delete_updates {
+            by_group
+                .get_mut(&group_id)
+                .unwrap()
+                .delete
                 .as_mut()
                 .unwrap()
                 .entries
@@ -209,4 +208,51 @@ pub async fn deploy(
     }
 
     Ok(LookupTables { groups: by_group })
+}
+
+async fn update_lookup_table(
+    context: Arc<DeploymentContext>,
+    verifiers: &Verifiers,
+    group_id: GroupId,
+    group_config: &GroupConfig,
+    table: &LookupTable,
+    config_batch_sizes: &HashSet<BatchSize>,
+    lookup_abi: &ethers::abi::Abi,
+) -> eyre::Result<HashMap<(GroupId, BatchSize), Address>> {
+    let report_batch_sizes =
+        table.entries.keys().copied().collect::<HashSet<_>>();
+
+    let batch_sizes_to_add_or_update =
+        config_batch_sizes.difference(&report_batch_sizes);
+    let batch_sizes_to_disable =
+        report_batch_sizes.difference(&config_batch_sizes);
+
+    info!("Going to update batch sizes for group {group_id}: {batch_sizes_to_add_or_update:?}");
+    for batch_size_to_disable in batch_sizes_to_disable {
+        warn!("Insertion batch size {batch_size_to_disable} for group {group_id} will not be disabled - remove it manually");
+    }
+
+    let table_deployment_address = table.deployment.address;
+
+    let mut updates = HashMap::new();
+
+    for batch_size in batch_sizes_to_add_or_update {
+        let tree_depth = group_config.tree_depth;
+        let batch_size = *batch_size;
+
+        let address = associate_group_batch_size_verifier(
+            context.clone(),
+            lookup_abi.clone(),
+            table_deployment_address,
+            group_id,
+            tree_depth,
+            batch_size,
+            verifiers,
+        )
+        .await?;
+
+        updates.insert((group_id, batch_size), address);
+    }
+
+    Ok(updates)
 }
