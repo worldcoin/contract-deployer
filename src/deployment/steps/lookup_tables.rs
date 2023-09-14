@@ -225,7 +225,7 @@ async fn update_lookup_table(
     let batch_sizes_to_add_or_update =
         config_batch_sizes.difference(&report_batch_sizes);
     let batch_sizes_to_disable =
-        report_batch_sizes.difference(&config_batch_sizes);
+        report_batch_sizes.difference(config_batch_sizes);
 
     info!("Going to update batch sizes for group {group_id}: {batch_sizes_to_add_or_update:?}");
     for batch_size_to_disable in batch_sizes_to_disable {

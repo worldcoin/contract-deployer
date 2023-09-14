@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use ethers::prelude::encode_function_data;
-use ethers::types::{Address, U256};
+use ethers::types::U256;
 use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
@@ -203,41 +203,6 @@ async fn upgrade_v1_to_v2(
     })
 }
 
-#[instrument(skip_all)]
-async fn initialize_v2(
-    context: &DeploymentContext,
-    config: &Config,
-    group_id: GroupId,
-    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
-    lookup_tables: &LookupTables,
-) -> eyre::Result<()> {
-    let impl_v2_spec = ContractSpec::name("WorldIDIdentityManagerImplV2");
-
-    let impl_abi = ForgeInspectAbi::new(impl_v2_spec.clone())
-        .with_cwd("./world-id-contracts")
-        .run()
-        .await?;
-
-    let initialize_v2_func = impl_abi.function("initializeV2")?;
-
-    let group_lookup_tables =
-        lookup_tables.groups.get(&group_id).with_context(|| {
-            format!("Missing lookup tables for group {group_id}")
-        })?;
-
-    let call_data = encode_function_data(
-        initialize_v2_func,
-        group_lookup_tables
-            .delete
-            .as_ref()
-            .expect("TODO")
-            .deployment
-            .address,
-    )?;
-
-    Ok(())
-}
-
 pub async fn deploy(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
@@ -269,7 +234,7 @@ mod tests {
 
     use super::*;
 
-    const ONLY_PROXY_DEPLOYMENT: &'static str = indoc! { r#"
+    const ONLY_PROXY_DEPLOYMENT: &str = indoc! { r#"
         proxy_deployment:
           address: '0x0000000000000000000000000000000000000000'
     "# };

@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use clap::Parser;
 use cli::Args;
 use config::Config;
@@ -15,7 +17,6 @@ pub mod forge_utils;
 pub mod serde_utils;
 pub mod utils;
 
-mod abis;
 mod cli;
 mod config;
 mod report;
