@@ -50,14 +50,15 @@ async fn deploy_world_id_identity_manager_v1_for_group(
                 context,
                 config,
                 group_id,
-                semaphore_verifier_deployment,
                 lookup_tables,
                 deployment,
             )
             .await;
-        } else {
+        } else if deployment.impl_v2_deployment.is_some() {
             info!("Existing world id identity manager deployment found for group {:?}. Skipping.", group_id);
             return Ok(deployment.clone());
+        } else {
+            eyre::bail!("Invalid world id identity manager deployment found for group {:?}.", group_id);
         }
     }
 
@@ -132,19 +133,21 @@ async fn deploy_world_id_identity_manager_v1_for_group(
         .run()
         .await?;
 
-    Ok(WorldIdIdentityManagerDeployment {
+    let deployment = WorldIdIdentityManagerDeployment {
         impl_v1_deployment: Some(impl_v1_deployment.into()),
         impl_v2_deployment: None,
         proxy_deployment: proxy_deployment.into(),
-    })
+    };
+
+    upgrade_v1_to_v2(context, config, group_id, lookup_tables, &deployment)
+        .await
 }
 
 #[instrument(skip_all)]
 async fn upgrade_v1_to_v2(
     context: &DeploymentContext,
-    config: &Config,
+    _config: &Config,
     group_id: GroupId,
-    semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
     lookup_tables: &LookupTables,
     v1_deployment: &WorldIdIdentityManagerDeployment,
 ) -> eyre::Result<WorldIdIdentityManagerDeployment> {
