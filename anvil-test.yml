@@ -1,8 +1,8 @@
 groups:
   0:
-    tree_depth: 20
+    tree_depth: 30
     insertion_batch_sizes:
-      - 10
+      - 100
     deletion_batch_sizes:
       - 10
 misc:
