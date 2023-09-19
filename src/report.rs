@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::deployment::steps::identity_manager::WorldIDIdentityManagersDeployment;
-use crate::deployment::steps::insertion_verifier::InsertionVerifiers;
 use crate::deployment::steps::lookup_tables::LookupTables;
 use crate::deployment::steps::semaphore_verifier::SemaphoreVerifierDeployment;
+use crate::deployment::steps::verifiers::Verifiers;
 use crate::deployment::steps::world_id_router::WorldIdRouterDeployment;
 use crate::types::GroupId;
 use crate::Config;
@@ -15,7 +15,11 @@ pub struct Report {
     pub config: Config,
 
     #[serde(default)]
-    pub verifiers: InsertionVerifiers,
+    #[serde(alias = "verifiers")]
+    pub insertion_verifiers: Verifiers,
+
+    #[serde(default)]
+    pub deletion_verifiers: Verifiers,
 
     #[serde(default)]
     pub lookup_tables: LookupTables,
@@ -34,7 +38,8 @@ impl Report {
     pub fn default_with_config(config: &Config) -> Self {
         Self {
             config: config.clone(),
-            verifiers: Default::default(),
+            insertion_verifiers: Default::default(),
+            deletion_verifiers: Default::default(),
             lookup_tables: Default::default(),
             semaphore_verifier: Default::default(),
             identity_managers: Default::default(),

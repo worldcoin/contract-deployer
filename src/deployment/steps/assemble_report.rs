@@ -3,9 +3,9 @@ use std::sync::Arc;
 use tracing::instrument;
 
 use super::identity_manager::WorldIDIdentityManagersDeployment;
-use super::insertion_verifier::InsertionVerifiers;
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
+use super::verifiers::Verifiers;
 use super::world_id_router::WorldIdRouterDeployment;
 use crate::config::Config;
 use crate::deployment::DeploymentContext;
@@ -18,7 +18,8 @@ pub const REPORT_PATH: &str = "report.yml";
 pub async fn assemble_report(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-    verifiers: &InsertionVerifiers,
+    insertion_verifiers: &Verifiers,
+    deletion_verifiers: &Verifiers,
     lookup_tables: &LookupTables,
     semaphore_verifier: Option<&SemaphoreVerifierDeployment>,
     identity_managers: &WorldIDIdentityManagersDeployment,
@@ -26,7 +27,8 @@ pub async fn assemble_report(
 ) -> eyre::Result<()> {
     let report = Report {
         config: config.as_ref().clone(),
-        verifiers: verifiers.clone(),
+        insertion_verifiers: insertion_verifiers.clone(),
+        deletion_verifiers: deletion_verifiers.clone(),
         lookup_tables: lookup_tables.clone(),
         semaphore_verifier: semaphore_verifier.cloned(),
         identity_managers: identity_managers.clone(),

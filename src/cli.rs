@@ -12,21 +12,21 @@ use reqwest::Url;
 pub struct Args {
     /// Path to the deployment configuration file
     #[clap(short, long, env)]
-    pub config: Option<PathBuf>,
+    pub config: PathBuf,
 
     /// The name of the deployment
     ///
     /// Should be something meaningful like 'prod-2023-04-18'
     #[clap(short, long, env)]
-    pub deployment_name: Option<String>,
+    pub deployment_name: String,
 
     /// Private key to use for the deployment
     #[clap(short, long, env)]
-    pub private_key: Option<PrivateKey>,
+    pub private_key: PrivateKey,
 
     /// The RPC Url to use for the deployment
     #[clap(short, long, env)]
-    pub rpc_url: Option<Url>,
+    pub rpc_url: Url,
 
     /// The etherscan API key to use
     #[clap(short, long, env)]

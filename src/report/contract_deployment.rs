@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::forge_utils::ForgeOutput;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct ContractDeployment {
     pub address: Address,
 }

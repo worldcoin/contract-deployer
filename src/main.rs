@@ -1,8 +1,9 @@
+#![allow(clippy::too_many_arguments)]
+
 use clap::Parser;
 use cli::Args;
 use config::Config;
 use deployment::run_deployment;
-use interactive::run_interactive_session;
 use tracing_error::ErrorLayer;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -22,8 +23,6 @@ mod report;
 mod types;
 
 mod deployment;
-
-mod interactive;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -45,11 +44,9 @@ async fn main() -> eyre::Result<()> {
         .with(ErrorLayer::default())
         .init();
 
-    let initial_args = Args::parse();
+    let args = Args::parse();
 
-    let cmd = run_interactive_session(initial_args).await?;
-
-    match run_deployment(cmd).await {
+    match run_deployment(args).await {
         Ok(()) => Ok(()),
         Err(err) => {
             tracing::error!("{:?}", err);
