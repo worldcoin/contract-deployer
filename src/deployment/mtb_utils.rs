@@ -51,7 +51,7 @@ pub async fn download_semaphore_mtb_binary(
 
     const MTB_RELEASES_URL: &str =
         "https://github.com/worldcoin/semaphore-mtb/releases/download";
-    const MTB_VERSION: &str = "1.2.0";
+    const MTB_VERSION: &str = "1.2.1";
 
     let url = format!("{MTB_RELEASES_URL}/{MTB_VERSION}/mtb-{os}-{arch}");
 
