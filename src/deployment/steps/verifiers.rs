@@ -53,8 +53,10 @@ pub async fn deploy_verifier_contract(
     let contract_spec =
         ContractSpec::path_name(verifier_contract.clone(), "Verifier");
 
+    tracing::info!("Deploying Verifier with {contract_spec}");
+
     let output = context
-        .forge_create(contract_spec)
+        .forge_create(contract_spec.clone())
         .with_cwd("./world-id-contracts")
         .with_override_contract_source(verifier_contract_parent)
         .no_verify()

@@ -4,11 +4,7 @@ use clap::Parser;
 use cli::Args;
 use config::Config;
 use deployment::run_deployment;
-use tracing_error::ErrorLayer;
-use tracing_indicatif::IndicatifLayer;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Layer};
+use tracing_subscriber::EnvFilter;
 
 pub mod common_keys;
 pub mod dependency_map;
@@ -30,19 +26,8 @@ async fn main() -> eyre::Result<()> {
 
     dotenv::dotenv().ok();
 
-    let indicatif_layer = IndicatifLayer::new();
-
     let filter = EnvFilter::from_default_env();
-
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_writer(indicatif_layer.get_stderr_writer())
-                .with_filter(filter),
-        )
-        .with(indicatif_layer)
-        .with(ErrorLayer::default())
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let args = Args::parse();
 
