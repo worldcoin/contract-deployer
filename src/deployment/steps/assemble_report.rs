@@ -15,7 +15,7 @@ use crate::serde_utils;
 pub const REPORT_PATH: &str = "report.yml";
 
 #[instrument(skip_all)]
-pub async fn assemble_report(
+pub async fn assemble_report_full(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
     insertion_verifiers: &Verifiers,
@@ -27,11 +27,11 @@ pub async fn assemble_report(
 ) -> eyre::Result<()> {
     let report = Report {
         config: config.as_ref().clone(),
-        insertion_verifiers: insertion_verifiers.clone(),
-        deletion_verifiers: deletion_verifiers.clone(),
-        lookup_tables: lookup_tables.clone(),
+        insertion_verifiers: Some(insertion_verifiers.clone()),
+        deletion_verifiers: Some(deletion_verifiers.clone()),
+        lookup_tables: Some(lookup_tables.clone()),
         semaphore_verifier: semaphore_verifier.cloned(),
-        identity_managers: identity_managers.clone(),
+        identity_managers: Some(identity_managers.clone()),
         world_id_router: world_id_router_deployment.cloned(),
     };
 

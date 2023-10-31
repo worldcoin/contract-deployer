@@ -8,12 +8,12 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use super::identity_manager::WorldIDIdentityManagersDeployment;
+use crate::config::Config;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
-use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {

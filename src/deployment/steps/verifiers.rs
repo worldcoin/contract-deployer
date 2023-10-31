@@ -39,6 +39,8 @@ pub async fn deploy_verifier_contract(
     if let Some(existing_deployment) = context
         .report
         .insertion_verifiers
+        .as_ref()
+        .unwrap()
         .verifiers
         .get(&(tree_depth, batch_size))
     {

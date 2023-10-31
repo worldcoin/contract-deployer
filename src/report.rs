@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use crate::config::Config;
 use crate::deployment::steps::identity_manager::WorldIDIdentityManagersDeployment;
 use crate::deployment::steps::lookup_tables::LookupTables;
 use crate::deployment::steps::semaphore_verifier::SemaphoreVerifierDeployment;
 use crate::deployment::steps::verifiers::Verifiers;
 use crate::deployment::steps::world_id_router::WorldIdRouterDeployment;
 use crate::types::GroupId;
-use crate::Config;
 
 pub mod contract_deployment;
 
@@ -16,19 +16,19 @@ pub struct Report {
 
     #[serde(default)]
     #[serde(alias = "verifiers")]
-    pub insertion_verifiers: Verifiers,
+    pub insertion_verifiers: Option<Verifiers>,
 
     #[serde(default)]
-    pub deletion_verifiers: Verifiers,
+    pub deletion_verifiers: Option<Verifiers>,
 
     #[serde(default)]
-    pub lookup_tables: LookupTables,
+    pub lookup_tables: Option<LookupTables>,
 
     #[serde(default)]
     pub semaphore_verifier: Option<SemaphoreVerifierDeployment>,
 
     #[serde(default)]
-    pub identity_managers: WorldIDIdentityManagersDeployment,
+    pub identity_managers: Option<WorldIDIdentityManagersDeployment>,
 
     #[serde(default)]
     pub world_id_router: Option<WorldIdRouterDeployment>,
@@ -48,8 +48,16 @@ impl Report {
     }
 
     pub fn invalidate_group_id(&mut self, group_id: GroupId) {
-        self.lookup_tables.groups.remove(&group_id);
-        self.identity_managers.groups.remove(&group_id);
+        self.lookup_tables
+            .as_mut()
+            .unwrap()
+            .groups
+            .remove(&group_id);
+        self.identity_managers
+            .as_mut()
+            .unwrap()
+            .groups
+            .remove(&group_id);
     }
 }
 

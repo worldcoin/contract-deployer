@@ -7,13 +7,12 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, instrument, warn};
 
 use super::verifiers::Verifiers;
-use crate::config::GroupConfig;
+use crate::config::{Config, GroupConfig};
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
 use crate::types::{BatchSize, GroupId, TreeDepth};
-use crate::Config;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LookupTables {
@@ -55,8 +54,13 @@ async fn deploy_lookup_tables(
     context: Arc<DeploymentContext>,
     group_id: GroupId,
 ) -> eyre::Result<GroupLookupTables> {
-    let mut lookup_tables = if let Some(lookup_tables) =
-        context.report.lookup_tables.groups.get(&group_id)
+    let mut lookup_tables = if let Some(lookup_tables) = context
+        .report
+        .lookup_tables
+        .as_ref()
+        .unwrap()
+        .groups
+        .get(&group_id)
     {
         info!("Found existing lookup tables for group {group_id}");
         lookup_tables.clone()
@@ -152,8 +156,13 @@ pub async fn deploy(
         let mut delete_updates = HashMap::new();
 
         if let Some(insert) = group.insert.as_ref() {
-            let config_batch_sizes: HashSet<_> =
-                group_config.insertion_batch_sizes.iter().copied().collect();
+            let config_batch_sizes: HashSet<_> = group_config
+                .insertion_batch_sizes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .copied()
+                .collect();
 
             insert_updates = update_lookup_table(
                 context.clone(),
@@ -168,8 +177,13 @@ pub async fn deploy(
         }
 
         if let Some(delete) = group.delete.as_ref() {
-            let config_batch_sizes: HashSet<_> =
-                group_config.deletion_batch_sizes.iter().copied().collect();
+            let config_batch_sizes: HashSet<_> = group_config
+                .deletion_batch_sizes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .copied()
+                .collect();
 
             delete_updates = update_lookup_table(
                 context.clone(),

@@ -10,6 +10,9 @@ use reqwest::Url;
 #[derive(Debug, Clone, Parser)]
 #[clap(rename_all = "kebab-case")]
 pub struct Args {
+    #[clap(short, long, env)]
+    pub target: String,
+
     /// Path to the deployment configuration file
     #[clap(short, long, env)]
     pub config: PathBuf,

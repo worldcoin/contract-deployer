@@ -32,7 +32,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
     let deployment_dir = PathBuf::from(cmd.deployment_name);
-    let cache_dir = deployment_dir.join(".cache");
+    let cache_dir: PathBuf = deployment_dir.join(".cache");
 
     tokio::fs::create_dir_all(&cache_dir).await?;
 
@@ -53,7 +53,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let rpc_signer = Arc::new(RpcSigner(Arc::new(signer)));
 
     let report_path = deployment_dir.join(REPORT_PATH);
-    let report = if report_path.exists() {
+    let report: Report = if report_path.exists() {
         serde_utils::read_deserialize::<Report>(&report_path).await?
     } else {
         Report::default_with_config(&config)
@@ -86,7 +86,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     )
     .await?;
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
@@ -105,7 +105,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     )
     .await?;
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
@@ -125,7 +125,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     )
     .await?;
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
@@ -141,7 +141,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
         semaphore_verifier::deploy(context.clone(), config.clone()).await?,
     );
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
@@ -163,7 +163,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     )
     .await?;
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
         &insertion_verifiers,
@@ -184,7 +184,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
         .await?,
     );
 
-    assemble_report::assemble_report(
+    assemble_report::assemble_report_full(
         context,
         config,
         &insertion_verifiers,

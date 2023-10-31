@@ -23,11 +23,11 @@ pub struct GroupConfig {
     pub tree_depth: TreeDepth,
     /// Which batch sizes are supported for insertion by this group
     #[serde(alias = "batch_sizes")] // For backwards compatibility
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub insertion_batch_sizes: Vec<BatchSize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub insertion_batch_sizes: Option<Vec<BatchSize>>,
     /// Which batch sizes are supported for deletion by this group
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub deletion_batch_sizes: Vec<BatchSize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deletion_batch_sizes: Option<Vec<BatchSize>>,
     /// Allows overriding the initial root constructor arg
     #[serde(default)]
     pub initial_root: Option<H256>,
@@ -42,8 +42,12 @@ impl Config {
 
         for group in self.groups.values() {
             let batch_sizes_for_mode = match mode {
-                ProverMode::Insertion => &group.insertion_batch_sizes,
-                ProverMode::Deletion => &group.deletion_batch_sizes,
+                ProverMode::Insertion => {
+                    group.insertion_batch_sizes.as_ref().unwrap()
+                }
+                ProverMode::Deletion => {
+                    group.deletion_batch_sizes.as_ref().unwrap()
+                }
             };
 
             for batch_size in batch_sizes_for_mode {

@@ -2,7 +2,6 @@
 
 use clap::Parser;
 use cli::Args;
-use config::Config;
 use deployment::run_deployment;
 use tracing_subscriber::EnvFilter;
 
