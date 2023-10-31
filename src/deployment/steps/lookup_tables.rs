@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, instrument, warn};
 
 use super::verifiers::Verifiers;
-use crate::common_keys::RpcSigner;
 use crate::config::GroupConfig;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
@@ -105,10 +104,10 @@ async fn associate_group_batch_size_verifier(
         .get(&(tree_depth, batch_size))
         .with_context(|| format!("Failed to get verifier for batch size {batch_size} and tree_depth {tree_depth}"))?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     TransactionBuilder::default()
-        .signer(signer)
+        .signer(signer.clone())
         .abi(verifier_abi.clone())
         .function_name("updateVerifier")
         .args((batch_size.0 as u64, verifier.deployment.address))

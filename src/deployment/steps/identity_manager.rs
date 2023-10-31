@@ -9,7 +9,6 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
-use crate::common_keys::RpcSigner;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
@@ -181,7 +180,7 @@ async fn upgrade_v1_to_v2(
     let call_data =
         encode_function_data(initialize_v2_func, delete_lookup_table_address)?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     let tx = TransactionBuilder::default()
         .signer(signer.clone())

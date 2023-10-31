@@ -16,7 +16,6 @@ use self::steps::*;
 use crate::cli::Args;
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
-use crate::dependency_map::DependencyMap;
 use crate::report::Report;
 use crate::serde_utils;
 
@@ -37,8 +36,6 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
 
     tokio::fs::create_dir_all(&cache_dir).await?;
 
-    let dep_map = DependencyMap::new();
-
     let provider = Provider::try_from(cmd.rpc_url.as_str())?;
     let chain_id = provider.get_chainid().await?;
     let wallet = Wallet::from(cmd.private_key.key.clone())
@@ -53,7 +50,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     // TODO: I think the RPC Signer should stay in the dep_map but it should eventually
     //       be replaced by some dyn Trait that can be used to sign transactions
     //       we might want to support multiple signers in the future
-    dep_map.set(RpcSigner(Arc::new(signer))).await;
+    let rpc_signer = Arc::new(RpcSigner(Arc::new(signer)));
 
     let report_path = deployment_dir.join(REPORT_PATH);
     let report = if report_path.exists() {
@@ -65,11 +62,11 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let context = DeploymentContext {
         deployment_dir,
         cache_dir,
-        dep_map,
         nonce: AtomicU64::new(nonce.as_u64()),
         report,
         private_key: cmd.private_key,
         rpc_url: cmd.rpc_url,
+        rpc_signer,
         etherscan_api_key: cmd.etherscan_api_key,
     };
 

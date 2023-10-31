@@ -11,15 +11,15 @@ Before you begin, ensure you have the following:
 
 To fetch all the submodules (world-id-contracts and its dependencies), run the following command:
 
-```
-> git submodule update --init --recursive
+```bash
+git submodule update --init --recursive
 ```
 
 ## ⚙️ Configuration
 
 Configuration is a breeze with environment variables or command line arguments. Simply set these variables in a `.env` file located in the root directory of the project. We have provided a `.env.example` file to help you get started. Here's a sample `.env` file:
 
-```
+```env
 RUST_LOG=info
 CONFIG=./polygon_mumbai_2023-05-25.yml
 DEPLOYMENT_NAME=polygon_mumbai_2023-05-25
@@ -45,21 +45,21 @@ Optional variables:
 The configuration file, specified via the `CONFIG` env var is structured YAML and contains two main sections: `groups` and `misc`.
 
 An example configuration file looks like this:
+
 ```yaml
 groups:
   1: # Orb
     tree_depth: 30
     batch_sizes:
-    - 10
-    - 100
-    - 1000
+      - 10
+      - 100
+      - 1000
   0: # Phone
     tree_depth: 30
     batch_sizes:
-    - 100
+      - 100
 misc:
-  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
-
+  initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"
 # world_id_contract_commit_hash: '2e2d25f1c45b07657e8830fb85a5221941aac68e'
 ```
 
@@ -104,5 +104,6 @@ The deployer will download the semaphore mtb binary and generate brand new keys 
 However it's possible to supplant custom keys (and even verifier contracts) - the deployer will not download generate keys or verifier contracts which are already present.
 
 So to provide custom keys, make sure to place them in the cache directory (by default `.cache` under the deployment directory) and then:
+
 1. Under `keys` for keys - keys filenames are expected to have the following format `keys_{tree_depth}_{batch_size}`
 2. Under `verifier_contracts` for contracts - contract filenames are expected to have the following format `verifier_{batch_size}_{tree_depth}.sol`

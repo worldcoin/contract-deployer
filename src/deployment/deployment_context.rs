@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 
 use ethers::types::Address;
 use reqwest::Url;
 
 use crate::cli::PrivateKey;
-use crate::dependency_map::DependencyMap;
+use crate::common_keys::RpcSigner;
 use crate::forge_utils::verify::ForgeVerify;
 use crate::forge_utils::{ContractSpec, ForgeCreate};
 use crate::report::Report;
@@ -14,10 +15,10 @@ use crate::report::Report;
 pub struct DeploymentContext {
     pub deployment_dir: PathBuf,
     pub cache_dir: PathBuf,
-    pub dep_map: DependencyMap,
     pub nonce: AtomicU64,
     pub report: Report,
     pub private_key: PrivateKey,
+    pub rpc_signer: Arc<RpcSigner>,
     pub rpc_url: Url,
     pub etherscan_api_key: Option<String>,
 }
@@ -50,9 +51,7 @@ impl DeploymentContext {
         contract_spec: ContractSpec,
         address: Address,
     ) -> ForgeVerify {
-        let forge_verify = ForgeVerify::new(contract_spec, address)
-            .with_etherscan_api_key(self.etherscan_api_key.clone().unwrap());
-
-        forge_verify
+        ForgeVerify::new(contract_spec, address)
+            .with_etherscan_api_key(self.etherscan_api_key.clone().unwrap())
     }
 }
