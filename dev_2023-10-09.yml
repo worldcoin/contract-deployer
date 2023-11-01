@@ -1,11 +1,12 @@
 groups:
   1: # Orb
+    target: "insertion-verifiers"
     tree_depth: 30
     insertion_batch_sizes:
-    - 100
+      - 100
     deletion_batch_sizes:
-    - 10
+      - 10
   0: # Phone
     tree_depth: 30
 misc:
-  initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+  initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"

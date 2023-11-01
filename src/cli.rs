@@ -1,17 +1,30 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 pub mod private_key;
 
 pub use private_key::PrivateKey;
 use reqwest::Url;
 
+#[derive(Debug, Clone, ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+pub enum DeploymentType {
+    Full,
+    SemaphoreVerifier,
+    InsertionVerifiers,
+    DeletionVerifiers,
+    Verifiers,
+    LookupTables,
+    WorldIdRouter,
+    IdentityManager,
+}
+
 #[derive(Debug, Clone, Parser)]
 #[clap(rename_all = "kebab-case")]
 pub struct Args {
-    #[clap(short, long, env)]
-    pub target: String,
+    #[clap(short, long, env, default_value = "full")]
+    pub target: DeploymentType,
 
     /// Path to the deployment configuration file
     #[clap(short, long, env)]

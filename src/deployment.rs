@@ -8,12 +8,12 @@ use ethers::signers::{Signer, Wallet};
 use eyre::ContextCompat;
 
 use self::mtb_utils::ProverMode;
-use self::steps::assemble_report::REPORT_PATH;
-use self::steps::identity_manager::WorldIDIdentityManagersDeployment;
-use self::steps::lookup_tables::LookupTables;
-use self::steps::verifiers::Verifiers;
-use self::steps::*;
-use crate::cli::Args;
+use self::steps::assemble_report::{self, REPORT_PATH};
+use self::steps::{
+    identity_manager, lookup_tables, semaphore_verifier, verifiers,
+    world_id_router,
+};
+use crate::cli::{Args, DeploymentType};
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
 use crate::report::Report;
@@ -47,8 +47,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
 
     let nonce = signer.get_transaction_count(wallet_address, None).await?;
 
-    // TODO: I think the RPC Signer should stay in the dep_map but it should eventually
-    //       be replaced by some dyn Trait that can be used to sign transactions
+    // TODO: should eventually be replaced by some dyn Trait that can be used to sign transactions
     //       we might want to support multiple signers in the future
     let rpc_signer = Arc::new(RpcSigner(Arc::new(signer)));
 
@@ -73,113 +72,154 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let context = Arc::new(context);
     let config = Arc::new(config);
 
-    let mut deletion_verifiers = Verifiers::default();
-    let mut lookup_tables = LookupTables::default();
-    let mut semaphore_verifier = None;
-    let mut identity_manager = WorldIDIdentityManagersDeployment::default();
-    let mut world_id_router = None;
+    match cmd.target {
+        DeploymentType::Full => {
+            full_deployment(config, context).await?;
+        }
+        DeploymentType::IdentityManager => {
+            identity_manager_deployment(config, context).await?;
+        }
+        DeploymentType::LookupTables => {
+            lookup_tables_deployment(context, config).await?
+        }
+        DeploymentType::SemaphoreVerifier => {
+            semaphore_verifier_deployment(context, config).await?;
+        }
+        DeploymentType::InsertionVerifiers => {
+            insertion_verifiers_deployment(context, config).await?;
+        }
+        DeploymentType::DeletionVerifiers => {
+            deletion_verifiers_deployment(context, config).await?;
+        }
+        DeploymentType::Verifiers => {
+            verifiers_deployment(context, config).await?;
+        }
+        DeploymentType::WorldIdRouter => todo!(),
+    }
+    Ok(())
+}
 
-    let insertion_verifiers = verifiers::deploy(
-        context.clone(),
-        config.clone(),
-        ProverMode::Insertion,
-    )
-    .await?;
-
-    assemble_report::assemble_report_full(
-        context.clone(),
-        config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
-        semaphore_verifier.as_ref(),
-        &identity_manager,
-        world_id_router.as_ref(),
-    )
-    .await?;
-
-    deletion_verifiers = verifiers::deploy(
-        context.clone(),
-        config.clone(),
-        ProverMode::Deletion,
-    )
-    .await?;
-
-    assemble_report::assemble_report_full(
-        context.clone(),
-        config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
-        semaphore_verifier.as_ref(),
-        &identity_manager,
-        world_id_router.as_ref(),
-    )
-    .await?;
-
-    lookup_tables = lookup_tables::deploy(
-        context.clone(),
-        config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-    )
-    .await?;
+pub async fn full_deployment(
+    config: Arc<Config>,
+    context: Arc<DeploymentContext>,
+) -> eyre::Result<()> {
+    let insertion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Insertion,
+        )
+        .await?,
+    );
 
     assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
-        semaphore_verifier.as_ref(),
-        &identity_manager,
-        world_id_router.as_ref(),
+        insertion_verifiers.as_ref(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await?;
 
-    semaphore_verifier = Some(
+    let deletion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Deletion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_full(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        None,
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+    let lookup_tables = Some(
+        lookup_tables::deploy(
+            context.clone(),
+            config.clone(),
+            insertion_verifiers
+                .as_ref()
+                .context("Missing insertion verifiers")?,
+            deletion_verifiers
+                .as_ref()
+                .context("Missing deletion verifiers")?,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_full(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+    let semaphore_verifier = Some(
         semaphore_verifier::deploy(context.clone(), config.clone()).await?,
     );
 
     assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
         semaphore_verifier.as_ref(),
-        &identity_manager,
-        world_id_router.as_ref(),
+        None,
+        None,
     )
     .await?;
 
-    identity_manager = identity_manager::deploy(
-        context.clone(),
-        config.clone(),
-        semaphore_verifier
-            .as_ref()
-            .context("Missing semaphore verifier")?,
-        &lookup_tables,
-    )
-    .await?;
+    let identity_manager: Option<
+        identity_manager::WorldIDIdentityManagersDeployment,
+    > = Some(
+        identity_manager::deploy(
+            context.clone(),
+            config.clone(),
+            semaphore_verifier
+                .as_ref()
+                .context("Missing semaphore verifier")?,
+            lookup_tables.as_ref().context("Missing lookup tables")?,
+        )
+        .await?,
+    );
 
     assemble_report::assemble_report_full(
         context.clone(),
         config.clone(),
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
         semaphore_verifier.as_ref(),
-        &identity_manager,
-        world_id_router.as_ref(),
+        identity_manager.as_ref(),
+        None,
     )
     .await?;
 
-    world_id_router = Some(
+    let world_id_router = Some(
         world_id_router::deploy(
             context.clone(),
             config.clone(),
-            &identity_manager,
+            identity_manager
+                .as_ref()
+                .context("Missing identity manager")?,
         )
         .await?,
     );
@@ -187,14 +227,322 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     assemble_report::assemble_report_full(
         context,
         config,
-        &insertion_verifiers,
-        &deletion_verifiers,
-        &lookup_tables,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
         semaphore_verifier.as_ref(),
-        &identity_manager,
+        identity_manager.as_ref(),
         world_id_router.as_ref(),
     )
     .await?;
 
     Ok(())
 }
+
+pub async fn identity_manager_deployment(
+    config: Arc<Config>,
+    context: Arc<DeploymentContext>,
+) -> eyre::Result<()> {
+    let insertion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Insertion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_identity_manager(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        None,
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+    let deletion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Deletion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_identity_manager(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        None,
+        None,
+        None,
+    )
+    .await?;
+
+    let lookup_tables = Some(
+        lookup_tables::deploy(
+            context.clone(),
+            config.clone(),
+            insertion_verifiers
+                .as_ref()
+                .context("Missing insertion verifiers")?,
+            deletion_verifiers
+                .as_ref()
+                .context("Missing deletion verifiers")?,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_identity_manager(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
+        None,
+        None,
+    )
+    .await?;
+
+    let semaphore_verifier = Some(
+        semaphore_verifier::deploy(context.clone(), config.clone()).await?,
+    );
+
+    assemble_report::assemble_report_identity_manager(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
+        semaphore_verifier.as_ref(),
+        None,
+    )
+    .await?;
+
+    let identity_manager = Some(
+        identity_manager::deploy(
+            context.clone(),
+            config.clone(),
+            semaphore_verifier
+                .as_ref()
+                .context("Missing semaphore verifier")?,
+            lookup_tables.as_ref().context("Missing lookup tables")?,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_identity_manager(
+        context,
+        config,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
+        semaphore_verifier.as_ref(),
+        identity_manager.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn semaphore_verifier_deployment(
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<()> {
+    let semaphore_verifier = Some(
+        semaphore_verifier::deploy(context.clone(), config.clone()).await?,
+    );
+
+    assemble_report::assemble_report_semaphore_verifier(
+        context,
+        config,
+        semaphore_verifier.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn lookup_tables_deployment(
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<()> {
+    let insertion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Insertion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_lookup_tables(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        None,
+        None,
+    )
+    .await?;
+
+    let deletion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Deletion,
+        )
+        .await?,
+    );
+    assemble_report::assemble_report_lookup_tables(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        None,
+    )
+    .await?;
+
+    let lookup_tables = Some(
+        lookup_tables::deploy(
+            context.clone(),
+            config.clone(),
+            insertion_verifiers
+                .as_ref()
+                .context("Missing insertion verifiers")?,
+            deletion_verifiers
+                .as_ref()
+                .context("Missing deletion verifiers")?,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_lookup_tables(
+        context,
+        config,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+        lookup_tables.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn insertion_verifiers_deployment(
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<()> {
+    let insertion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Insertion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_insertion_verifiers(
+        context,
+        config,
+        insertion_verifiers.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn deletion_verifiers_deployment(
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<()> {
+    let deletion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Deletion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_deletion_verifiers(
+        context,
+        config,
+        deletion_verifiers.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn verifiers_deployment(
+    context: Arc<DeploymentContext>,
+    config: Arc<Config>,
+) -> eyre::Result<()> {
+    let insertion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Insertion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_verifiers(
+        context.clone(),
+        config.clone(),
+        insertion_verifiers.as_ref(),
+        None,
+    )
+    .await?;
+
+    let deletion_verifiers = Some(
+        verifiers::deploy(
+            context.clone(),
+            config.clone(),
+            ProverMode::Deletion,
+        )
+        .await?,
+    );
+
+    assemble_report::assemble_report_verifiers(
+        context,
+        config,
+        insertion_verifiers.as_ref(),
+        deletion_verifiers.as_ref(),
+    )
+    .await?;
+
+    Ok(())
+}
+
+//pub async fn world_id_router_deployment(
+//    context: Arc<DeploymentContext>,
+//    config: Arc<Config>,
+//) -> eyre::Result<()> {
+//    let identity_manager = Some(
+//        identity_manager::deploy(context.clone(), config.clone(), None, None)
+//            .await?,
+//    );
+//
+//    let world_id_router = Some(
+//        world_id_router::deploy(
+//            context.clone(),
+//            config.clone(),
+//            identity_manager.as_ref(),
+//        )
+//        .await?,
+//    );
+//
+//    assemble_report::assemble_report_world_id_router(
+//        context,
+//        config,
+//        world_id_router.as_ref(),
+//    )
+//    .await?;
+//
+//    Ok(())
+//}
