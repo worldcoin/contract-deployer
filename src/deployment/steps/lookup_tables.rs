@@ -156,13 +156,8 @@ pub async fn deploy(
         let mut delete_updates = HashMap::new();
 
         if let Some(insert) = group.insert.as_ref() {
-            let config_batch_sizes: HashSet<_> = group_config
-                .insertion_batch_sizes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .copied()
-                .collect();
+            let config_batch_sizes: HashSet<_> =
+                group_config.insertion_batch_sizes.iter().copied().collect();
 
             insert_updates = update_lookup_table(
                 context.clone(),
@@ -177,13 +172,8 @@ pub async fn deploy(
         }
 
         if let Some(delete) = group.delete.as_ref() {
-            let config_batch_sizes: HashSet<_> = group_config
-                .deletion_batch_sizes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .copied()
-                .collect();
+            let config_batch_sizes: HashSet<_> =
+                group_config.deletion_batch_sizes.iter().copied().collect();
 
             delete_updates = update_lookup_table(
                 context.clone(),
