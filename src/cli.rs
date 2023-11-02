@@ -7,7 +7,7 @@ pub mod private_key;
 pub use private_key::PrivateKey;
 use reqwest::Url;
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, PartialEq)]
 #[clap(rename_all = "kebab-case")]
 pub enum DeploymentType {
     Full,
