@@ -16,7 +16,7 @@ use self::steps::{
 use crate::cli::{Args, DeploymentType};
 use crate::common_keys::RpcSigner;
 use crate::config::Config;
-use crate::report::{self, Report};
+use crate::report::Report;
 use crate::serde_utils;
 
 pub mod deployment_context;
