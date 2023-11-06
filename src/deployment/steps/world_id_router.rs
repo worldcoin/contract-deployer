@@ -8,13 +8,12 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use super::identity_manager::WorldIDIdentityManagersDeployment;
-use crate::common_keys::RpcSigner;
+use crate::config::Config;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
-use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorldIdRouterDeployment {
@@ -81,7 +80,7 @@ async fn update_group_route(
         .run()
         .await?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     let tx = TransactionBuilder::default()
         .signer(signer.clone())
@@ -111,7 +110,7 @@ async fn add_group_route(
         .run()
         .await?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     let tx = TransactionBuilder::default()
         .signer(signer.clone())
@@ -140,7 +139,7 @@ async fn remove_group_route(
         .run()
         .await?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     let tx = TransactionBuilder::default()
         .signer(signer.clone())

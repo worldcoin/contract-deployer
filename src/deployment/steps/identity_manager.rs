@@ -9,13 +9,12 @@ use tracing::{info, instrument};
 
 use super::lookup_tables::LookupTables;
 use super::semaphore_verifier::SemaphoreVerifierDeployment;
-use crate::common_keys::RpcSigner;
+use crate::config::Config;
 use crate::deployment::DeploymentContext;
 use crate::ethers_utils::TransactionBuilder;
 use crate::forge_utils::{ContractSpec, ForgeInspectAbi};
 use crate::report::contract_deployment::ContractDeployment;
 use crate::types::GroupId;
-use crate::Config;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct WorldIDIdentityManagersDeployment {
@@ -39,8 +38,13 @@ async fn deploy_world_id_identity_manager_for_group(
     semaphore_verifier_deployment: &SemaphoreVerifierDeployment,
     lookup_tables: &LookupTables,
 ) -> eyre::Result<WorldIdIdentityManagerDeployment> {
-    if let Some(deployment) =
-        context.report.identity_managers.groups.get(&group_id)
+    if let Some(deployment) = context
+        .report
+        .identity_managers
+        .as_ref()
+        .unwrap()
+        .groups
+        .get(&group_id)
     {
         if deployment.impl_v1_deployment.is_some()
             && deployment.impl_v2_deployment.is_none()
@@ -181,7 +185,7 @@ async fn upgrade_v1_to_v2(
     let call_data =
         encode_function_data(initialize_v2_func, delete_lookup_table_address)?;
 
-    let signer = context.dep_map.get::<RpcSigner>().await;
+    let signer = &context.rpc_signer;
 
     let tx = TransactionBuilder::default()
         .signer(signer.clone())

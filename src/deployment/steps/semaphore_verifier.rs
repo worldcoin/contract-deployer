@@ -4,10 +4,10 @@ use ethers::types::Address;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use crate::config::Config;
 use crate::deployment::DeploymentContext;
 use crate::forge_utils::{ContractSpec, ExternalDep};
 use crate::report::contract_deployment::ContractDeployment;
-use crate::Config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SemaphoreVerifierDeployment {
@@ -48,7 +48,7 @@ async fn deploy_semaphore_verifier(
         return Ok(previous_deployment.verifier_deployment.clone());
     }
 
-    let contract_spec = ContractSpec::name("SemaphoreVerifier");
+    let contract_spec: ContractSpec = ContractSpec::name("SemaphoreVerifier");
 
     let output = context
         .forge_create(contract_spec)

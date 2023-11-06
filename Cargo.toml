@@ -2,42 +2,41 @@
 name = "bootstrapper"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = { version = "4.2.3", features = ["env", "derive"] }
+color-eyre = "=0.5.11"
+derive_more = "0.99.17"
 dotenv = "0.15.0"
 ethers = "2.0.10"
+
+eyre = "0.6.8"
+futures = "0.3.28"
+hex = "0.4.3"
+hex-literal = "0.4.1"
 indicatif = "0.17.3"
+maplit = "1.0.2"
+os_info = "3.7.0"
+
+# Required by ethers-signers 2.0.10 -> trezor-client 0.1.0
+protobuf = "=3.2.0"
+reqwest = "0.11.16"
+
+semaphore = { git = "https://github.com/worldcoin/semaphore-rs", branch = "bump-ethers", features = [
+    "depth_30",
+] }
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
+serde_yaml = "0.9.21"
+shrinkwraprs = "0.3.0"
+strum = { version = "0.25.0", features = ["derive"] }
+sys-info = "0.9.1"
 tempfile = "3.5.0"
 tokio = { version = "1.27.0", features = ["full"] }
 toml = "0.7.3"
 tracing = "0.1.37"
 tracing-subscriber = "*"
-
-semaphore = { git = "https://github.com/worldcoin/semaphore-rs", branch = "bump-ethers", features = [
-    "depth_30",
-] }
-
-eyre = "0.6.8"
-hex = "0.4.3"
-hex-literal = "0.4.1"
-os_info = "3.7.0"
-sys-info = "0.9.1"
-reqwest = "0.11.16"
-futures = "0.3.28"
-serde_yaml = "0.9.21"
-shrinkwraprs = "0.3.0"
-maplit = "1.0.2"
-color-eyre = "=0.5.11"
-derive_more = "0.99.17"
-strum = { version = "0.25.0", features = ["derive"] }
-
-# Required by ethers-signers 2.0.10 -> trezor-client 0.1.0
-protobuf = "=3.2.0"
 
 [dev-dependencies]
 indoc = "2.0"

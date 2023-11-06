@@ -18,21 +18,21 @@ pub const REPORT_PATH: &str = "report.yml";
 pub async fn assemble_report(
     context: Arc<DeploymentContext>,
     config: Arc<Config>,
-    insertion_verifiers: &Verifiers,
-    deletion_verifiers: &Verifiers,
-    lookup_tables: &LookupTables,
+    insertion_verifiers: Option<&Verifiers>,
+    deletion_verifiers: Option<&Verifiers>,
+    lookup_tables: Option<&LookupTables>,
     semaphore_verifier: Option<&SemaphoreVerifierDeployment>,
-    identity_managers: &WorldIDIdentityManagersDeployment,
-    world_id_router_deployment: Option<&WorldIdRouterDeployment>,
+    identity_managers: Option<&WorldIDIdentityManagersDeployment>,
+    world_id_router: Option<&WorldIdRouterDeployment>,
 ) -> eyre::Result<()> {
     let report = Report {
         config: config.as_ref().clone(),
-        insertion_verifiers: insertion_verifiers.clone(),
-        deletion_verifiers: deletion_verifiers.clone(),
-        lookup_tables: lookup_tables.clone(),
+        insertion_verifiers: insertion_verifiers.cloned(),
+        deletion_verifiers: deletion_verifiers.cloned(),
+        lookup_tables: lookup_tables.cloned(),
         semaphore_verifier: semaphore_verifier.cloned(),
-        identity_managers: identity_managers.clone(),
-        world_id_router: world_id_router_deployment.cloned(),
+        identity_managers: identity_managers.cloned(),
+        world_id_router: world_id_router.cloned(),
     };
 
     let path = context.deployment_dir.join(REPORT_PATH);

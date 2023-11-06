@@ -2,12 +2,10 @@
 
 use clap::Parser;
 use cli::Args;
-use config::Config;
 use deployment::run_deployment;
 use tracing_subscriber::EnvFilter;
 
 pub mod common_keys;
-pub mod dependency_map;
 pub mod ethers_utils;
 pub mod forge_utils;
 pub mod serde_utils;
