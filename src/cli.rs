@@ -48,6 +48,16 @@ pub struct Args {
     #[clap(short, long, env)]
     pub etherscan_api_key: Option<String>,
 
+    /// The verifier to use for the deployment - blockscout, etherscan
+    #[clap(long, env)]
+    pub verifier: Option<String>,
+
+    /// The verifier url to use for the deployment
+    /// For blockscout, this is the url to the blockscout instance api
+    /// For etherscan, this is the url to the etherscan api
+    #[clap(long, env)]
+    pub verifier_url: Option<String>,
+
     /// Cache directory
     #[clap(long, env, default_value = ".cache")]
     pub cache_dir: PathBuf,

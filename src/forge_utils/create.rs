@@ -17,8 +17,15 @@ pub struct ForgeCreate {
     external_deps: Vec<ExternalDep>,
     override_nonce: Option<u64>,
     constructor_args: Vec<String>,
-    verification_api_key: Option<String>,
+    verification_args: ForgeCreateVerificationArgs,
     no_verify: bool,
+}
+
+#[derive(Debug)]
+pub struct ForgeCreateVerificationArgs {
+    pub verification_api_key: Option<String>,
+    pub verifier: Option<String>,
+    pub verifier_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,7 +47,11 @@ impl ForgeCreate {
             rpc_url: None,
             external_deps: vec![],
             constructor_args: vec![],
-            verification_api_key: None,
+            verification_args: ForgeCreateVerificationArgs {
+                verification_api_key: None,
+                verifier: None,
+                verifier_url: None,
+            },
             no_verify: false,
         }
     }
@@ -54,7 +65,18 @@ impl ForgeCreate {
         mut self,
         verification_api_key: impl ToString,
     ) -> Self {
-        self.verification_api_key = Some(verification_api_key.to_string());
+        self.verification_args.verification_api_key =
+            Some(verification_api_key.to_string());
+        self
+    }
+
+    pub fn with_verifier(mut self, verifier: impl ToString) -> Self {
+        self.verification_args.verifier = Some(verifier.to_string());
+        self
+    }
+
+    pub fn with_verifier_url(mut self, verifier_url: impl ToString) -> Self {
+        self.verification_args.verifier_url = Some(verifier_url.to_string());
         self
     }
 
@@ -154,11 +176,34 @@ impl ForgeCreate {
             cmd.arg(constructor_arg);
         }
 
-        if let Some(verification_api_key) = &self.verification_api_key {
-            if !self.no_verify {
-                cmd.arg("--verify");
+        if !self.no_verify {
+            let mut should_verify = false;
+
+            if let Some(verification_api_key) =
+                &self.verification_args.verification_api_key
+            {
+                should_verify = true;
+
                 cmd.arg("--etherscan-api-key");
                 cmd.arg(verification_api_key);
+            }
+
+            if let Some(verifier) = &self.verification_args.verifier {
+                should_verify = true;
+
+                cmd.arg("--verifier");
+                cmd.arg(verifier);
+            }
+
+            if let Some(verifier_url) = &self.verification_args.verifier_url {
+                should_verify = true;
+
+                cmd.arg("--verifier-url");
+                cmd.arg(verifier_url);
+            }
+
+            if should_verify {
+                cmd.arg("--verify");
             }
         }
 

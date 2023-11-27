@@ -1,4 +1,9 @@
 target/
+# Cache directory
 **/.cache/
+# Cached report file
+**/*.cache
 .env
 **/.DS_Store
+
+

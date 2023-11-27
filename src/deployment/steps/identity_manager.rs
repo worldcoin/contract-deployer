@@ -42,9 +42,7 @@ async fn deploy_world_id_identity_manager_for_group(
         .report
         .identity_managers
         .as_ref()
-        .unwrap()
-        .groups
-        .get(&group_id)
+        .and_then(|g| g.groups.get(&group_id))
     {
         if deployment.impl_v1_deployment.is_some()
             && deployment.impl_v2_deployment.is_none()

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use ethers::types::Address;
 use reqwest::Url;
 
-use crate::cli::PrivateKey;
+use crate::cli::{Args, PrivateKey};
 use crate::common_keys::RpcSigner;
 use crate::forge_utils::verify::ForgeVerify;
 use crate::forge_utils::{ContractSpec, ForgeCreate};
@@ -21,6 +21,7 @@ pub struct DeploymentContext {
     pub rpc_signer: Arc<RpcSigner>,
     pub rpc_url: Url,
     pub etherscan_api_key: Option<String>,
+    pub cmd: Args,
 }
 
 impl DeploymentContext {
@@ -41,6 +42,14 @@ impl DeploymentContext {
         if let Some(etherscan_api_key) = self.etherscan_api_key.as_ref() {
             forge_create = forge_create
                 .with_verification_api_key(etherscan_api_key.clone());
+        }
+
+        if let Some(verifier) = self.cmd.verifier.as_ref() {
+            forge_create = forge_create.with_verifier(verifier.clone());
+        }
+
+        if let Some(verifier_url) = self.cmd.verifier_url.as_ref() {
+            forge_create = forge_create.with_verifier_url(verifier_url.clone());
         }
 
         forge_create

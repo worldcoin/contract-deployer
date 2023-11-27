@@ -40,9 +40,7 @@ pub async fn deploy_verifier_contract(
         .report
         .insertion_verifiers
         .as_ref()
-        .unwrap()
-        .verifiers
-        .get(&(tree_depth, batch_size))
+        .and_then(|x| x.verifiers.get(&(tree_depth, batch_size)))
     {
         info!("Found previous verifier deployment for tree depth {tree_depth} and batch size {batch_size} at {:?}", existing_deployment.deployment.address);
         return Ok(existing_deployment.deployment.clone());

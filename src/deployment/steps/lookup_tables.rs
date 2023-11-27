@@ -58,9 +58,7 @@ async fn deploy_lookup_tables(
         .report
         .lookup_tables
         .as_ref()
-        .unwrap()
-        .groups
-        .get(&group_id)
+        .and_then(|tables| tables.groups.get(&group_id))
     {
         info!("Found existing lookup tables for group {group_id}");
         lookup_tables.clone()

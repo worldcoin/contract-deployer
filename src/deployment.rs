@@ -31,7 +31,7 @@ pub use self::deployment_context::DeploymentContext;
 pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
     let config: Config = serde_utils::read_deserialize(&cmd.config).await?;
 
-    let deployment_dir = PathBuf::from(cmd.deployment_name);
+    let deployment_dir = PathBuf::from(&cmd.deployment_name);
     let cache_dir: PathBuf = deployment_dir.join(".cache");
 
     tokio::fs::create_dir_all(&cache_dir).await?;
@@ -53,15 +53,15 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
 
     let report_path = deployment_dir.join(REPORT_PATH);
 
-    let report: Report;
+    let report = if report_path.exists() {
+        let report = serde_utils::read_deserialize(&report_path).await?;
 
-    if report_path.exists() {
-        report = serde_utils::read_deserialize(&report_path).await?;
-
-        let cache_path = report_path.join(".cache");
+        let cache_path = report_path.with_extension("yml.cache");
         serde_utils::write_serialize(cache_path, &report).await?;
+
+        report
     } else {
-        report = Report::default_with_config(&config);
+        Report::default_with_config(&config)
     };
 
     let context = DeploymentContext {
@@ -69,6 +69,7 @@ pub async fn run_deployment(cmd: Args) -> eyre::Result<()> {
         cache_dir,
         nonce: AtomicU64::new(nonce.as_u64()),
         report,
+        cmd: cmd.clone(),
         private_key: cmd.private_key,
         rpc_url: cmd.rpc_url,
         rpc_signer,
