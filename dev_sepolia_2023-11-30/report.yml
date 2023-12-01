@@ -1,0 +1,77 @@
+config:
+  groups:
+    0:
+      tree_depth: 30
+      initial_root: null
+    1:
+      tree_depth: 30
+      insertion_batch_sizes:
+      - 100
+      deletion_batch_sizes:
+      - 10
+      initial_root: null
+  misc:
+    initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+insertion_verifiers:
+  verifiers:
+    ? - 30
+      - 100
+    : deployment:
+        address: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
+deletion_verifiers:
+  verifiers:
+    ? - 30
+      - 10
+    : deployment:
+        address: 0x047ee5313f98e26cc8177fa38877cb36292d2364
+lookup_tables:
+  groups:
+    1:
+      insert:
+        deployment:
+          address: 0x379c62556c665f1edd25f2c2a0f76bc70a53b2e4
+        entries:
+          100: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
+      update:
+        deployment:
+          address: 0x42ff98c4e85212a5d31358acbfe76a621b50fc02
+      delete:
+        deployment:
+          address: 0xe177f37af0a862a02edfea4f59c02668e9d0aaa4
+        entries:
+          10: 0x047ee5313f98e26cc8177fa38877cb36292d2364
+    0:
+      insert:
+        deployment:
+          address: 0x4055b6d4018e92e4d000865e61e87b57a4e5ab49
+      update:
+        deployment:
+          address: 0x17b354dd2595411ff79041f930e491a4df39a278
+      delete:
+        deployment:
+          address: 0x78ec127a3716d447f4575e9c834d452e397ee9e1
+semaphore_verifier:
+  verifier_deployment:
+    address: 0xa3cd15ebed6075e33a54483c59818bc43d57c556
+  pairing_deployment:
+    address: 0xcdbbcd1cb0b642f8e324ab29c73a967b0c80bad5
+identity_managers:
+  groups:
+    0:
+      impl_v2_deployment:
+        address: 0x3310846ee4250603e6ac6e4904e7e1667a1b248a
+      proxy_deployment:
+        address: 0x665252cdae50cf9cecebe61c25b1649bb06110ac
+    1:
+      impl_v2_deployment:
+        address: 0xb3e7771a6e2d7dd8c0666042b7a07c39b938eb7d
+      proxy_deployment:
+        address: 0x2a968958e6136fa0fc2ed068af8bef464c7b66ea
+world_id_router:
+  impl_v1_deployment:
+    address: 0x7acdc12cbcba53e1ea2206844d0a8ccb6f3b08fb
+  proxy_deployment:
+    address: 0x39911b3242e952d86270857bc8efc3fce8d84abe
+  entries:
+    0: 0x665252cdae50cf9cecebe61c25b1649bb06110ac
+    1: 0x2a968958e6136fa0fc2ed068af8bef464c7b66ea
