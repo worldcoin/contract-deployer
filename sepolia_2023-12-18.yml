@@ -3,5 +3,12 @@ groups:
     tree_depth: 30
     insertion_batch_sizes:
     - 100
+  1:
+    tree_depth: 30
+    insertion_batch_sizes:
+    - 100
+    - 1200
+    deletion_batch_sizes:
+    - 100
 misc:
   initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'

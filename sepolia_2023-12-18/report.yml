@@ -1,5 +1,13 @@
 config:
   groups:
+    1:
+      tree_depth: 30
+      insertion_batch_sizes:
+      - 100
+      - 1200
+      deletion_batch_sizes:
+      - 100
+      initial_root: null
     0:
       tree_depth: 30
       insertion_batch_sizes:
@@ -13,10 +21,33 @@ insertion_verifiers:
       - 100
     : deployment:
         address: 0xa3d93b74214b80760288091675688e1ead7838f2
+    ? - 30
+      - 1200
+    : deployment:
+        address: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
 deletion_verifiers:
-  verifiers: {}
+  verifiers:
+    ? - 30
+      - 100
+    : deployment:
+        address: 0xa3d93b74214b80760288091675688e1ead7838f2
 lookup_tables:
   groups:
+    1:
+      insert:
+        deployment:
+          address: 0xca7d6822b9c6913b1a1416ce30ef14c4e7f0bfb1
+        entries:
+          100: 0xa3d93b74214b80760288091675688e1ead7838f2
+          1200: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
+      update:
+        deployment:
+          address: 0x43b68ccba7fc726540768fd1537c3179283140ed
+      delete:
+        deployment:
+          address: 0xa4e3e0dc26b9885e42b458af90a2a96d7f7492f9
+        entries:
+          100: 0xa3d93b74214b80760288091675688e1ead7838f2
     0:
       insert:
         deployment:
@@ -36,15 +67,21 @@ semaphore_verifier:
     address: 0x2ad412a1df96434eed0779d2db4a8694a06132f8
 identity_managers:
   groups:
+    1:
+      impl_v2_deployment:
+        address: 0xa2bdfa846bc6ad346e7b43a4b35f1cc627a29451
+      proxy_deployment:
+        address: 0xe5d8756dc25764c8a28e197be85e60c5262633a0
     0:
       impl_v2_deployment:
-        address: 0xc67c38e9875887c280aefbfb1fdef5447e0c92d1
+        address: 0x54aef6aba7e27e3b3698549449596e0f251962c4
       proxy_deployment:
-        address: 0xe44c83b9e1971a24ec698829297a0c4026b0cef9
+        address: 0xd5977db30e8805a955a90d0671ba21ef6f388bf3
 world_id_router:
   impl_v1_deployment:
-    address: 0x9e4984bde7f17ab422cc4254c08074b3c42160d1
+    address: 0xfacb304163c5879f01d9fc854b79fbb40be14c99
   proxy_deployment:
-    address: 0x521e8fb3a32ea44237dc8b1e506dd78accfdf8bd
+    address: 0x469449f251692e0779667583026b5a1e99512157
   entries:
-    0: 0xe44c83b9e1971a24ec698829297a0c4026b0cef9
+    0: 0xd5977db30e8805a955a90d0671ba21ef6f388bf3
+    1: 0xe5d8756dc25764c8a28e197be85e60c5262633a0
