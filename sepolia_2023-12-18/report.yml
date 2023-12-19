@@ -24,7 +24,7 @@ insertion_verifiers:
     ? - 30
       - 1200
     : deployment:
-        address: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
+        address: 0x8308f4ef80d67d490ac6fb2f6591c04c716ee7b5
 deletion_verifiers:
   verifiers:
     ? - 30
@@ -39,7 +39,7 @@ lookup_tables:
           address: 0xca7d6822b9c6913b1a1416ce30ef14c4e7f0bfb1
         entries:
           100: 0xa3d93b74214b80760288091675688e1ead7838f2
-          1200: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
+          1200: 0x8308f4ef80d67d490ac6fb2f6591c04c716ee7b5
       update:
         deployment:
           address: 0x43b68ccba7fc726540768fd1537c3179283140ed
