@@ -4,6 +4,7 @@ config:
       tree_depth: 30
       insertion_batch_sizes:
       - 100
+      - 600
       - 1200
       deletion_batch_sizes:
       - 100
@@ -22,6 +23,10 @@ insertion_verifiers:
     : deployment:
         address: 0xa3d93b74214b80760288091675688e1ead7838f2
     ? - 30
+      - 600    
+    : deployment:
+        address: 0xF0F626ca96eE1168A143bDDD2DF6ccd43C0743d9
+    ? - 30
       - 1200
     : deployment:
         address: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
@@ -39,6 +44,7 @@ lookup_tables:
           address: 0xca7d6822b9c6913b1a1416ce30ef14c4e7f0bfb1
         entries:
           100: 0xa3d93b74214b80760288091675688e1ead7838f2
+          600: 0xF0F626ca96eE1168A143bDDD2DF6ccd43C0743d9
           1200: 0x39ccb3b670651a14da8b3835f42924f49c2c5986
       update:
         deployment:
