@@ -31,7 +31,7 @@ lookup_tables:
         deployment:
           address: 0x379c62556c665f1edd25f2c2a0f76bc70a53b2e4
         entries:
-          100: 0x316eb4c12edb9bb9e8721663444bb9818e6fab67
+          100: 0xD55FCc733C3B13AF36aC9998A995D28d7Cc23d70
       update:
         deployment:
           address: 0x42ff98c4e85212a5d31358acbfe76a621b50fc02
@@ -39,7 +39,7 @@ lookup_tables:
         deployment:
           address: 0xe177f37af0a862a02edfea4f59c02668e9d0aaa4
         entries:
-          10: 0x047ee5313f98e26cc8177fa38877cb36292d2364
+          10: 0x72EF65C95e7569024c8Bc37F055A781E7Cc61C66
     0:
       insert:
         deployment:
