@@ -1,6 +1,5 @@
 groups:
   1: # Orb
-    target: "insertion-verifiers"
     tree_depth: 30
     insertion_batch_sizes:
       - 100
