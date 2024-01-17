@@ -3,6 +3,7 @@ groups:
     tree_depth: 30
     insertion_batch_sizes:
       - 100
+      - 10
     deletion_batch_sizes:
       - 10
   0: # Phone
