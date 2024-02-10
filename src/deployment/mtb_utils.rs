@@ -34,6 +34,7 @@ pub async fn download_semaphore_mtb_binary(
         os_info::Type::Windows => "windows",
         os_info::Type::Macos => "darwin",
         os_info::Type::Linux => "linux",
+        os_info::Type::Ubuntu => "linux",
         unsupported => {
             eyre::bail!("Unsupported os type: {unsupported}")
         }
@@ -47,13 +48,14 @@ pub async fn download_semaphore_mtb_binary(
         eyre::bail!("32 bit architectures are not supported, got: {arch}")
     }
 
-    let arch = if arch == "x64" { "amd64" } else { arch };
+    let arch = if arch == "x64" || arch == "x86_64" { "amd64" } else { arch };
 
     const MTB_RELEASES_URL: &str =
         "https://github.com/worldcoin/semaphore-mtb/releases/download";
     const MTB_VERSION: &str = "1.2.1";
 
     let url = format!("{MTB_RELEASES_URL}/{MTB_VERSION}/mtb-{os}-{arch}");
+    let url_log = url.clone();
 
     let response = reqwest::get(url).await?;
 
@@ -61,7 +63,7 @@ pub async fn download_semaphore_mtb_binary(
 
     if !status.is_success() {
         let error = response.text().await?;
-        eyre::bail!("Failed to download mtb binary: {status} - {error}");
+        eyre::bail!("Failed to download mtb binary from {url_log}: {status} - {error}");
     }
 
     let bytes = response.bytes().await?;
