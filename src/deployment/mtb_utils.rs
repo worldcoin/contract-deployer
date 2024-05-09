@@ -33,7 +33,7 @@ pub async fn download_semaphore_mtb_binary(
     let os = match info.os_type() {
         os_info::Type::Windows => "windows",
         os_info::Type::Macos => "darwin",
-        os_info::Type::Linux => "linux",
+        os_info::Type::Ubuntu | os_info::Type::Linux => "linux",
         unsupported => {
             eyre::bail!("Unsupported os type: {unsupported}")
         }
