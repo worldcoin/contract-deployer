@@ -119,7 +119,7 @@ async fn deploy_world_id_identity_manager_for_group(
     let call_data = encode_function_data(
         initialize_func,
         (
-            group_config.tree_depth.0 as u64,
+            group_config.tree_depth.0 as u8,
             initial_root_u256,
             insert_lookup_table_address,
             update_lookup_table_address,
