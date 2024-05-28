@@ -63,6 +63,9 @@ misc:
 # world_id_contract_commit_hash: '2e2d25f1c45b07657e8830fb85a5221941aac68e'
 ```
 
+Notes on values:
+ - `tree_depth` is limited by [the Semaphore](https://github.com/worldcoin/semaphore-v3). Permissible [range 16-32](https://github.com/worldcoin/world-id-contracts/blob/master/src/utils/SemaphoreTreeDepthValidator.sol#L13-L14)
+
 ### Groups
 
 The `groups` section is a map where each key is a `GroupId` and the value is a `GroupConfig`. Each `GroupConfig` has two properties: `tree_depth` and `batch_sizes`.
