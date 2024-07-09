@@ -108,5 +108,5 @@ However it's possible to supplant custom keys (and even verifier contracts) - th
 
 So to provide custom keys, make sure to place them in the cache directory (by default `.cache` under the deployment directory) and then:
 
-1. Under `keys` for keys - keys filenames are expected to have the following format `keys_{tree_depth}_{batch_size}`
-2. Under `verifier_contracts` for contracts - contract filenames are expected to have the following format `verifier_{batch_size}_{tree_depth}.sol`
+1. Under `keys` for keys - keys filenames are expected to have the following format `keys_{mode}_{tree_depth}_{batch_size}`
+2. Under `verifier_contracts` for contracts - contract filenames are expected to have the following format `{mode}_{tree_depth}_{batch_size}.sol`
