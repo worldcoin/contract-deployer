@@ -1,12 +1,8 @@
 groups:
-  1: # Orb
+  0:
     tree_depth: 30
     insertion_batch_sizes:
       - 100
-      - 10
-    deletion_batch_sizes:
-      - 10
-  0: # Phone
-    tree_depth: 30
+    initial_root: "0x022AC471036312D23EB095B238D94CE98DC789171475894EAA66E8B3A6F5F040"
 misc:
   initial_leaf_value: "0x0000000000000000000000000000000000000000000000000000000000000000"

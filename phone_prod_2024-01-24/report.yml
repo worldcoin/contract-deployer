@@ -1,0 +1,50 @@
+config:
+  groups:
+    0:
+      tree_depth: 30
+      insertion_batch_sizes:
+      - 100
+      initial_root: 0x022ac471036312d23eb095b238d94ce98dc789171475894eaa66e8b3a6f5f040
+  misc:
+    initial_leaf_value: '0x0000000000000000000000000000000000000000000000000000000000000000'
+insertion_verifiers:
+  verifiers:
+    ? - 30
+      - 100
+    : deployment:
+        address: 0x12a541b0654095d16aa340afe19ee5b81be035e2
+deletion_verifiers:
+  verifiers: {}
+lookup_tables:
+  groups:
+    0:
+      insert:
+        deployment:
+          address: 0x7265e96fb512ae543503ccf1028739f45227aeae
+        entries:
+          100: 0x12a541b0654095d16aa340afe19ee5b81be035e2
+      update:
+        deployment:
+          address: 0x371b344b1730d5dd976bd4fe3bf97aa008293325
+      delete:
+        deployment:
+          address: 0xafc3d772faebdd09c06a9ca8d1197eef6edd2ca3
+semaphore_verifier:
+  verifier_deployment:
+    address: 0x029e38a55f54240bb336413de79da04dbaba7161
+  pairing_deployment:
+    address: 0x64779709f13cfd45ae5eaf6cfa85e57e34214339
+identity_managers:
+  groups:
+    0:
+      impl_v2_deployment:
+        address: 0xb0eb2fdf975f3d47d789a8b98e3d9b8410aeea47
+      proxy_deployment:
+        address: 0xfcac4c4cffe76a75d54db059463a6b3f2c6b0156
+world_id_router:
+  impl_v1_deployment:
+    address: 0xd9ce208e1d9f464d91d8b1c5022c5c152b44a84a
+  proxy_deployment:
+    address: 0xa043fc366ed20a356ccc5e0b2f7aeeb273d78548
+  entries:
+    0: 0xfcac4c4cffe76a75d54db059463a6b3f2c6b0156
